@@ -19,22 +19,20 @@ const initDb = async () => {
     `;
     await pool.query(createUsersTableQuery);
 
-    // 2. Ensure profile columns exist in users table
-    const alterQueries = [
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS farm_location VARCHAR(255) DEFAULT NULL;`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS district VARCHAR(100) DEFAULT NULL;`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT NULL;`
-    ];
-
-    for (const query of alterQueries) {
+    // Helper for safe column addition compatible with all MySQL versions
+    const addColumnSafely = async (table, column, definition) => {
       try {
-        await pool.query(query);
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
       } catch (err) {
-        // Ignore duplicate column errors if IF NOT EXISTS isn't supported in older MySQL
+        // Ignored if column already exists (ER_DUP_FIELDNAME - 1060)
       }
-    }
+    };
 
-    // 3. Create Products Table if not exists
+    await addColumnSafely('users', 'farm_location', 'VARCHAR(255) DEFAULT NULL');
+    await addColumnSafely('users', 'district', 'VARCHAR(100) DEFAULT NULL');
+    await addColumnSafely('users', 'state', 'VARCHAR(100) DEFAULT NULL');
+
+    // 2. Create Products Table if not exists
     const createProductsTableQuery = `
       CREATE TABLE IF NOT EXISTS products (
         id INT AUTO_INCREMENT PRIMARY KEY,

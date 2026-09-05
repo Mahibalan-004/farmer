@@ -37,6 +37,7 @@ const addProduct = async (req, res) => {
     // Validate required fields
     if (!crop_name || !category || !quantity || !unit || !price_per_unit) {
       return res.status(400).json({
+        success: false,
         message: 'Please provide all required fields: crop_name, category, quantity, unit, price_per_unit'
       });
     }
@@ -64,12 +65,17 @@ const addProduct = async (req, res) => {
     const newProduct = await getProductById(productId);
 
     return res.status(201).json({
+      success: true,
       message: 'Product added successfully',
       product: newProduct
     });
   } catch (error) {
-    console.error('Error adding product:', error);
-    return res.status(500).json({ message: 'Server error adding product', error: error.message });
+    console.error('❌ Error adding product:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error adding product',
+      error: error.message
+    });
   }
 };
 
@@ -80,13 +86,18 @@ const getMyProducts = async (req, res) => {
   try {
     const products = await getProductsByFarmerId(req.user.id);
     return res.status(200).json({
+      success: true,
       message: 'Farmer products retrieved successfully',
       count: products.length,
       products
     });
   } catch (error) {
-    console.error('Error getting farmer products:', error);
-    return res.status(500).json({ message: 'Server error retrieving products', error: error.message });
+    console.error('❌ Error getting farmer products:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error retrieving products',
+      error: error.message
+    });
   }
 };
 
@@ -97,13 +108,18 @@ const getAllProducts = async (req, res) => {
   try {
     const products = await getAllAvailableProducts();
     return res.status(200).json({
+      success: true,
       message: 'Available products retrieved successfully',
       count: products.length,
       products
     });
   } catch (error) {
-    console.error('Error getting public products:', error);
-    return res.status(500).json({ message: 'Server error retrieving available products', error: error.message });
+    console.error('❌ Error getting public marketplace products:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error retrieving available products',
+      error: error.message
+    });
   }
 };
 
@@ -118,11 +134,11 @@ const updateProductController = async (req, res) => {
     // Check if product exists and belongs to this farmer
     const existingProduct = await getProductById(productId);
     if (!existingProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
     if (existingProduct.farmer_id !== farmerId) {
-      return res.status(403).json({ message: 'Forbidden. You can update only your own products.' });
+      return res.status(403).json({ success: false, message: 'Forbidden. You can update only your own products.' });
     }
 
     const {
@@ -161,18 +177,19 @@ const updateProductController = async (req, res) => {
     });
 
     if (!updated) {
-      return res.status(400).json({ message: 'Failed to update product' });
+      return res.status(400).json({ success: false, message: 'Failed to update product' });
     }
 
     const updatedProduct = await getProductById(productId);
 
     return res.status(200).json({
+      success: true,
       message: 'Product updated successfully',
       product: updatedProduct
     });
   } catch (error) {
-    console.error('Error updating product:', error);
-    return res.status(500).json({ message: 'Server error updating product', error: error.message });
+    console.error('❌ Error updating product:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating product', error: error.message });
   }
 };
 
@@ -187,25 +204,26 @@ const deleteProductController = async (req, res) => {
     // Check if product exists and belongs to this farmer
     const existingProduct = await getProductById(productId);
     if (!existingProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
     if (existingProduct.farmer_id !== farmerId) {
-      return res.status(403).json({ message: 'Forbidden. You can delete only your own products.' });
+      return res.status(403).json({ success: false, message: 'Forbidden. You can delete only your own products.' });
     }
 
     const deleted = await deleteProduct(productId, farmerId);
     if (!deleted) {
-      return res.status(400).json({ message: 'Failed to delete product' });
+      return res.status(400).json({ success: false, message: 'Failed to delete product' });
     }
 
     return res.status(200).json({
+      success: true,
       message: 'Product deleted successfully',
       deleted_product_id: parseInt(productId)
     });
   } catch (error) {
-    console.error('Error deleting product:', error);
-    return res.status(500).json({ message: 'Server error deleting product', error: error.message });
+    console.error('❌ Error deleting product:', error);
+    return res.status(500).json({ success: false, message: 'Server error deleting product', error: error.message });
   }
 };
 

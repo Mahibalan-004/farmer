@@ -39,9 +39,16 @@ const createProduct = async (productData) => {
 // Get Product by ID
 const getProductById = async (id) => {
   const [rows] = await pool.query(
-    `SELECT p.*, u.full_name as farmer_name, u.phone as farmer_phone, u.email as farmer_email
+    `SELECT 
+       p.id, p.farmer_id, p.crop_name, p.category, p.quantity, p.unit, 
+       p.price_per_unit, p.location, p.district, p.state, p.harvest_date, 
+       p.quality_grade, p.description, p.image_url, p.available_date, p.status, 
+       p.created_at, p.updated_at,
+       u.full_name AS farmer_name, 
+       u.phone AS farmer_phone, 
+       u.email AS farmer_email
      FROM products p
-     JOIN users u ON p.farmer_id = u.id
+     LEFT JOIN users u ON p.farmer_id = u.id
      WHERE p.id = ?`,
     [id]
   );
@@ -60,9 +67,16 @@ const getProductsByFarmerId = async (farmer_id) => {
 // Get All Available Products (Public Market View)
 const getAllAvailableProducts = async () => {
   const [rows] = await pool.query(
-    `SELECT p.*, u.full_name as farmer_name, u.phone as farmer_phone, u.farm_location, u.district as farmer_district, u.state as farmer_state
+    `SELECT 
+       p.id, p.farmer_id, p.crop_name, p.category, p.quantity, p.unit, 
+       p.price_per_unit, p.location, p.district, p.state, p.harvest_date, 
+       p.quality_grade, p.description, p.image_url, p.available_date, p.status, 
+       p.created_at, p.updated_at,
+       u.full_name AS farmer_name, 
+       u.phone AS farmer_phone, 
+       u.email AS farmer_email
      FROM products p
-     JOIN users u ON p.farmer_id = u.id
+     LEFT JOIN users u ON p.farmer_id = u.id
      WHERE p.status = 'Available'
      ORDER BY p.created_at DESC`
   );

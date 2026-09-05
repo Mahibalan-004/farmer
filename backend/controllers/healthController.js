@@ -1,7 +1,12 @@
+const { testConnection } = require('../config/db');
+
 // Health Check Controller
-const getHealthStatus = (req, res) => {
+const getHealthStatus = async (req, res) => {
+  const dbStatus = await testConnection();
+
   res.status(200).json({
-    message: "AGRIF2C Backend is Running Successfully"
+    message: "AGRIF2C Backend is Running Successfully",
+    database: dbStatus.success ? "MySQL Connected Successfully" : dbStatus.message
   });
 };
 

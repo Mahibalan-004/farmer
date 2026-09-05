@@ -4,7 +4,8 @@ function App() {
   const [healthStatus, setHealthStatus] = useState({
     loading: true,
     connected: false,
-    message: 'Checking Backend Health...'
+    message: 'Checking Backend Health...',
+    database: 'Checking Database...'
   });
 
   useEffect(() => {
@@ -18,7 +19,8 @@ function App() {
         setHealthStatus({
           loading: false,
           connected: true,
-          message: data.message || 'Connected to Backend'
+          message: data.message || 'AGRIF2C Backend is Running Successfully',
+          database: data.database || 'MySQL Database Configured'
         });
       })
       .catch((err) => {
@@ -26,7 +28,8 @@ function App() {
         setHealthStatus({
           loading: false,
           connected: false,
-          message: 'Backend Offline (Start Node.js server on port 5000)'
+          message: 'Backend Offline (Start Node.js server on port 5000)',
+          database: 'Database Status Unavailable'
         });
       });
   }, []);
@@ -42,15 +45,24 @@ function App() {
           Connecting Farmers Directly with Buyers
         </p>
 
-        <div className="status-card">
-          <span className={`status-dot ${healthStatus.connected ? 'active' : ''}`}></span>
-          <span className="status-text">
-            {healthStatus.loading ? 'Connecting...' : healthStatus.message}
-          </span>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="status-card">
+            <span className={`status-dot ${healthStatus.connected ? 'active' : ''}`}></span>
+            <span className="status-text">
+              {healthStatus.loading ? 'Connecting...' : healthStatus.message}
+            </span>
+          </div>
+
+          <div className="status-card">
+            <span className={`status-dot ${healthStatus.database.includes('Successfully') ? 'active' : ''}`}></span>
+            <span className="status-text">
+              🗄️ {healthStatus.loading ? 'Checking MySQL...' : healthStatus.database}
+            </span>
+          </div>
         </div>
 
         <div className="roles-section">
-          <p className="roles-title">Platform Roles Scaffolded</p>
+          <p className="roles-title">Platform User Roles & Buyers Supported</p>
           <div className="roles-grid">
             <span className="role-tag">👨‍🌾 Farmer</span>
             <span className="role-tag">🛒 Individual Consumer</span>
@@ -63,7 +75,7 @@ function App() {
       </main>
 
       <footer>
-        AGRIF2C System Architecture Scaffold • Step 1 Completed
+        AGRIF2C System Architecture • MySQL Database Module Configured
       </footer>
     </div>
   );

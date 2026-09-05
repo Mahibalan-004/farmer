@@ -10,8 +10,12 @@ function Navbar() {
   const user = userJson ? JSON.parse(userJson) : null;
 
   const [cartCount, setCartCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    // Close mobile menu on route change
+    setMobileMenuOpen(false);
+
     if (token) {
       fetchCartCount();
     } else {
@@ -35,6 +39,7 @@ function Navbar() {
   };
 
   const handleLogout = () => {
+    setMobileMenuOpen(false);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
@@ -50,17 +55,35 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to="/" className="nav-logo">
+        <Link to="/" className="nav-logo" onClick={() => setMobileMenuOpen(false)}>
           <span className="logo-icon">🌱</span>
           <span className="logo-text">AGRIF2C</span>
         </Link>
 
-        <div className="nav-links">
-          <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
+        {/* Hamburger Toggle Button for Mobile */}
+        <button
+          className="mobile-hamburger-btn"
+          onClick={() => setMobileMenuOpen(prev => !prev)}
+          aria-label="Toggle navigation menu"
+        >
+          {mobileMenuOpen ? '✕' : '☰'}
+        </button>
+
+        {/* Navigation Links Container */}
+        <div className={`nav-links ${mobileMenuOpen ? 'mobile-active' : ''}`}>
+          <Link
+            to="/"
+            className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
             Home
           </Link>
 
-          <Link to="/marketplace" className={`nav-item ${location.pathname === '/marketplace' ? 'active' : ''}`}>
+          <Link
+            to="/marketplace"
+            className={`nav-item ${location.pathname === '/marketplace' ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
             Marketplace
           </Link>
 
@@ -70,23 +93,43 @@ function Navbar() {
                 <Link
                   to="/farmer-dashboard"
                   className={`nav-item ${location.pathname.includes('farmer-dashboard') ? 'active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   Farmer Portal
                 </Link>
               )}
 
-              <Link to="/cart" className={`nav-item nav-cart-item ${location.pathname === '/cart' ? 'active' : ''}`}>
+              {user.role === 'Farmer' && (
+                <Link
+                  to="/farmer-dashboard/profile"
+                  className={`nav-item ${location.pathname === '/farmer-dashboard/profile' ? 'active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Profile
+                </Link>
+              )}
+
+              <Link
+                to="/cart"
+                className={`nav-item nav-cart-item ${location.pathname === '/cart' ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 🛒 Cart {cartCount > 0 && <span className="cart-badge-count">{cartCount}</span>}
               </Link>
 
-              <Link to="/my-orders" className={`nav-item ${location.pathname === '/my-orders' ? 'active' : ''}`}>
+              <Link
+                to="/my-orders"
+                className={`nav-item ${location.pathname === '/my-orders' ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 📦 My Orders
               </Link>
 
               <div className="user-badge font-sm">
                 👤 {user.full_name} ({user.role})
               </div>
-              <button onClick={handleLogout} className="btn btn-outline btn-sm">
+
+              <button onClick={handleLogout} className="btn btn-outline btn-sm mobile-full-width">
                 Logout
               </button>
             </>
@@ -97,10 +140,15 @@ function Navbar() {
               <Link
                 to="/login"
                 className={`nav-item ${location.pathname === '/login' ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 Login
               </Link>
-              <Link to="/register" className="btn btn-primary btn-sm">
+              <Link
+                to="/register"
+                className="btn btn-primary btn-sm mobile-full-width"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Register
               </Link>
             </>

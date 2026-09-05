@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { findUserByEmail, findUserById, createUser } = require('../models/userModel');
+const { findUserByEmail, findUserByPhone, findUserByEmailOrPhone, findUserById, createUser } = require('../models/userModel');
 
 // Allowed roles for public registration
 const ALLOWED_ROLES = ['Farmer', 'Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer'];
@@ -38,11 +38,20 @@ const register = async (req, res) => {
     }
 
     // 3. Email uniqueness check
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) {
+    const existingEmail = await findUserByEmail(email);
+    if (existingEmail) {
       return res.status(400).json({
         success: false,
         message: 'Email already registered'
+      });
+    }
+
+    // 4. Phone number uniqueness check
+    const existingPhone = await findUserByPhone(phone);
+    if (existingPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number already registered'
       });
     }
 
@@ -86,23 +95,24 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, email, password } = req.body;
+    const loginIdentifier = identifier || email;
 
     // 1. Validation
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide both email and password' });
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide both email/phone number and password' });
     }
 
-    // 2. Find user by email
-    const user = await findUserByEmail(email);
+    // 2. Find user by email OR phone number
+    const user = await findUserByEmailOrPhone(loginIdentifier);
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid email/phone number or password' });
     }
 
     // 3. Verify password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid email/phone number or password' });
     }
 
     // 4. Generate JWT Token

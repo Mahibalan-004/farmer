@@ -1,20 +1,26 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
-function FarmerSidebar() {
+function FarmerSidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    if (onClose) onClose();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
   };
 
+  const handleItemClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="farmer-sidebar">
+    <aside className={`farmer-sidebar ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-brand">
         <span className="sidebar-logo">🌱 AGRIF2C</span>
         <span className="sidebar-role-tag">Farmer Portal</span>
+        <button className="mobile-close-sidebar-btn" onClick={onClose}>✕</button>
       </div>
 
       <nav className="sidebar-menu">
@@ -22,6 +28,7 @@ function FarmerSidebar() {
           to="/farmer-dashboard"
           end
           className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+          onClick={handleItemClick}
         >
           <span className="menu-icon">📊</span>
           <span>Dashboard</span>
@@ -30,6 +37,7 @@ function FarmerSidebar() {
         <NavLink
           to="/farmer-dashboard/profile"
           className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+          onClick={handleItemClick}
         >
           <span className="menu-icon">👤</span>
           <span>My Profile</span>
@@ -38,6 +46,7 @@ function FarmerSidebar() {
         <NavLink
           to="/farmer-dashboard/add-product"
           className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+          onClick={handleItemClick}
         >
           <span className="menu-icon">➕</span>
           <span>Add Product</span>
@@ -46,6 +55,7 @@ function FarmerSidebar() {
         <NavLink
           to="/farmer-dashboard/my-products"
           className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+          onClick={handleItemClick}
         >
           <span className="menu-icon">🌾</span>
           <span>My Products</span>
@@ -54,6 +64,7 @@ function FarmerSidebar() {
         <NavLink
           to="/farmer-dashboard/orders"
           className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+          onClick={handleItemClick}
         >
           <span className="menu-icon">📦</span>
           <span>Orders</span>

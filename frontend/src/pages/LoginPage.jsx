@@ -5,7 +5,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '',
     password: ''
   });
 
@@ -23,19 +23,19 @@ function LoginPage() {
     setError('');
     setSuccess('');
 
-    const { email, password } = formData;
+    const { identifier, password } = formData;
 
-    if (!email || !password) {
-      setError('Please enter both email and password.');
+    if (!identifier || !password) {
+      setError('Please enter your email or phone number and password.');
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifier, email: identifier, password })
       });
 
       const data = await res.json();
@@ -57,7 +57,7 @@ function LoginPage() {
         } else if (userRole === 'Admin') {
           navigate('/admin-dashboard');
         } else {
-          navigate('/buyer-dashboard');
+          navigate('/marketplace');
         }
       }, 1000);
 
@@ -83,14 +83,14 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="identifier">Email or Phone Number</label>
             <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
+              type="text"
+              id="identifier"
+              name="identifier"
+              value={formData.identifier}
               onChange={handleChange}
-              placeholder="name@example.com"
+              placeholder="Enter your email or phone number"
               required
             />
           </div>

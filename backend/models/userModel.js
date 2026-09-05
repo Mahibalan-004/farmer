@@ -39,8 +39,25 @@ const updateUserProfile = async (id, { full_name, phone, farm_location, district
   return await findUserById(id);
 };
 
+// Find user by email or phone number
+const findUserByEmailOrPhone = async (identifier) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM users WHERE email = ? OR phone = ?',
+    [identifier, identifier]
+  );
+  return rows[0];
+};
+
+// Find user by phone
+const findUserByPhone = async (phone) => {
+  const [rows] = await pool.query('SELECT * FROM users WHERE phone = ?', [phone]);
+  return rows[0];
+};
+
 module.exports = {
   findUserByEmail,
+  findUserByPhone,
+  findUserByEmailOrPhone,
   findUserById,
   createUser,
   updateUserProfile

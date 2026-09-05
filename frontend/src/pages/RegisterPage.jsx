@@ -29,7 +29,7 @@ function RegisterPage() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -39,7 +39,7 @@ function RegisterPage() {
 
     const { full_name, email, phone, password, confirmPassword, role } = formData;
 
-    // 1. Validations
+    // 1. Client-Side Validations
     if (!full_name || !email || !phone || !password || !confirmPassword || !role) {
       setError('Please fill in all required fields.');
       return;
@@ -76,11 +76,24 @@ function RegisterPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || data.success === false) {
         throw new Error(data.message || 'Registration failed.');
       }
 
-      setSuccess('Registration successful! Redirecting to login page...');
+      // 2. Clear all form fields immediately on success
+      setFormData({
+        full_name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: '',
+        role: 'Farmer'
+      });
+
+      // 3. Display success message required by Task 2
+      setSuccess('Registration successful! Please login.');
+
+      // 4. Redirect to login page after showing message
       setTimeout(() => {
         navigate('/login');
       }, 1800);

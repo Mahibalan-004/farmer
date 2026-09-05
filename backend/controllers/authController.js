@@ -24,6 +24,7 @@ const register = async (req, res) => {
     // 1. Basic validation
     if (!full_name || !email || !phone || !password || !role) {
       return res.status(400).json({
+        success: false,
         message: 'Please fill in all required fields: full_name, email, phone, password, role'
       });
     }
@@ -31,6 +32,7 @@ const register = async (req, res) => {
     // 2. Role validation (Disallow public Admin registration)
     if (!ALLOWED_ROLES.includes(role)) {
       return res.status(400).json({
+        success: false,
         message: `Invalid role. Allowed roles are: ${ALLOWED_ROLES.join(', ')}`
       });
     }
@@ -39,7 +41,8 @@ const register = async (req, res) => {
     const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({
-        message: 'Email is already registered. Please login instead.'
+        success: false,
+        message: 'Email already registered'
       });
     }
 
@@ -56,24 +59,25 @@ const register = async (req, res) => {
       role
     });
 
-    const newUser = await findUserById(userId);
-
-    // 6. Return response
+    // 6. Send successful JSON response directly without post-insert query risks
     return res.status(201).json({
+      success: true,
       message: 'User registered successfully',
       user: {
-        id: newUser.id,
-        full_name: newUser.full_name,
-        email: newUser.email,
-        phone: newUser.phone,
-        role: newUser.role,
-        created_at: newUser.created_at
+        id: userId,
+        full_name,
+        email,
+        phone,
+        role
       }
     });
 
   } catch (error) {
     console.error('Registration Error:', error);
-    return res.status(500).json({ message: 'Server error during registration', error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error during registration'
+    });
   }
 };
 
@@ -86,19 +90,19 @@ const login = async (req, res) => {
 
     // 1. Validation
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide both email and password' });
+      return res.status(400).json({ success: false, message: 'Please provide both email and password' });
     }
 
     // 2. Find user by email
     const user = await findUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     // 3. Verify password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     // 4. Generate JWT Token
@@ -106,6 +110,7 @@ const login = async (req, res) => {
 
     // 5. Return success response
     return res.status(200).json({
+      success: true,
       message: 'Login successful',
       token,
       user: {
@@ -119,7 +124,7 @@ const login = async (req, res) => {
 
   } catch (error) {
     console.error('Login Error:', error);
-    return res.status(500).json({ message: 'Server error during login', error: error.message });
+    return res.status(500).json({ success: false, message: 'Server error during login', error: error.message });
   }
 };
 
@@ -130,11 +135,11 @@ const getMe = async (req, res) => {
   try {
     const user = await findUserById(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.status(200).json({ user });
+    return res.status(200).json({ success: true, user });
   } catch (error) {
-    return res.status(500).json({ message: 'Server error fetching user profile', error: error.message });
+    return res.status(500).json({ success: false, message: 'Server error fetching user profile', error: error.message });
   }
 };
 

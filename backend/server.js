@@ -3,7 +3,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { testConnection } = require('./config/db');
+const { initDb } = require('./config/initDb');
 const healthRoutes = require('./routes/healthRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,17 +16,21 @@ app.use(express.json());
 
 // API Routes
 app.use('/api', healthRoutes);
+app.use('/api/auth', authRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {
   res.send('Welcome to AGRIF2C API Server');
 });
 
-// Start Server and test MySQL connection
+// Start Server, verify MySQL connection, and initialize database tables
 app.listen(PORT, async () => {
   console.log(`🚀 AGRIF2C Backend Server running on http://localhost:${PORT}`);
   console.log(`📡 Health Check endpoint available at http://localhost:${PORT}/api/health`);
   
-  // Test MySQL connection on server startup
-  await testConnection();
+  // Test MySQL connection & initialize database tables on server startup
+  const dbStatus = await testConnection();
+  if (dbStatus.success) {
+    await initDb();
+  }
 });

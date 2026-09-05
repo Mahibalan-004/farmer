@@ -45,6 +45,10 @@ const FarmerOrdersPage = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    if (newStatus === 'Cancelled' && !window.confirm('Cancelling this order will restore the product stock back to your inventory. Proceed?')) {
+      return;
+    }
+
     try {
       setUpdatingId(orderId);
       setError('');
@@ -62,9 +66,9 @@ const FarmerOrdersPage = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setSuccessMsg(`Order #AGR-${1000 + orderId} status updated to '${newStatus}'.`);
+        setSuccessMsg(data.message || `Order status updated to '${newStatus}'.`);
         // Update local state
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: newStatus } : o));
+        setOrders(prev => prev.map(o => o.order_id === orderId || o.id === orderId ? { ...o, order_status: newStatus } : o));
       } else {
         setError(data.message || 'Failed to update order status');
       }
@@ -83,6 +87,7 @@ const FarmerOrdersPage = () => {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
+      case 'Pending': return 'badge-status-pending';
       case 'Placed': return 'badge-status-placed';
       case 'Confirmed': return 'badge-status-confirmed';
       case 'Processing': return 'badge-status-processing';
@@ -96,8 +101,10 @@ const FarmerOrdersPage = () => {
   return (
     <div className="farmer-orders-container">
       <div className="farmer-dashboard-header">
-        <h2>📦 Order Management</h2>
-        <p>View and manage incoming customer order requests for your listed crops</p>
+        <div>
+          <h2>📦 Orders Received</h2>
+          <p>View and manage incoming customer order requests for your listed crops</p>
+        </div>
       </div>
 
       {error && <div className="cart-error-message">{error}</div>}
@@ -105,7 +112,7 @@ const FarmerOrdersPage = () => {
 
       {/* Filter Tabs */}
       <div className="order-filter-tabs">
-        {['All', 'Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(filter => (
+        {['All', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(filter => (
           <button
             key={filter}
             className={`filter-tab ${activeFilter === filter ? 'active' : ''}`}
@@ -129,77 +136,79 @@ const FarmerOrdersPage = () => {
         </div>
       ) : (
         <div className="farmer-orders-list">
-          {filteredOrders.map(order => (
-            <div key={order.id} className="farmer-order-card">
-              <div className="farmer-order-header">
-                <div>
-                  <span className="order-id">Order #AGR-{1000 + order.id}</span>
-                  <span className="order-date">
-                    {new Date(order.created_at).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-                <div className="status-control">
-                  <label htmlFor={`status-${order.id}`}>Update Status: </label>
-                  <select
-                    id={`status-${order.id}`}
-                    value={order.order_status}
-                    disabled={updatingId === order.id}
-                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                    className="status-select-dropdown"
-                  >
-                    <option value="Placed">Placed</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="farmer-order-body">
-                <div className="buyer-info-box">
-                  <h4>👤 Customer Info</h4>
-                  <p><strong>Name:</strong> {order.buyer_name || 'N/A'}</p>
-                  <p><strong>Phone:</strong> <a href={`tel:${order.delivery_phone}`}>{order.delivery_phone}</a></p>
-                  <p><strong>Delivery Address:</strong> {order.delivery_address}, {order.district}, {order.state} - {order.pincode}</p>
-                  <p><strong>Payment Method:</strong> {order.payment_method} ({order.payment_status})</p>
+          {filteredOrders.map((order, index) => {
+            const targetOrderId = order.order_id || order.id;
+            return (
+              <div key={order.order_item_id || index} className="farmer-order-card">
+                <div className="farmer-order-header">
+                  <div>
+                    <span className="order-id">
+                      {order.order_number || `Order #AGR-${1000 + targetOrderId}`}
+                    </span>
+                    <span className="order-date">
+                      {new Date(order.created_at).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  
+                  <div className="status-control">
+                    <label htmlFor={`status-${order.order_item_id || index}`}>Status: </label>
+                    <select
+                      id={`status-${order.order_item_id || index}`}
+                      value={order.order_status}
+                      disabled={updatingId === targetOrderId}
+                      onChange={(e) => handleStatusChange(targetOrderId, e.target.value)}
+                      className={`status-select-dropdown ${getStatusBadgeClass(order.order_status)}`}
+                    >
+                      <option value="Pending">🟡 Pending</option>
+                      <option value="Confirmed">🔵 Confirmed</option>
+                      <option value="Processing">🟣 Processing</option>
+                      <option value="Shipped">🚚 Shipped</option>
+                      <option value="Delivered">🟢 Delivered</option>
+                      <option value="Cancelled">🔴 Cancelled</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="order-items-table-wrapper">
-                  <h4>🌾 Products Ordered from You</h4>
-                  <table className="farmer-items-table">
-                    <thead>
-                      <tr>
-                        <th>Crop Name</th>
-                        <th>Price/Unit</th>
-                        <th>Quantity</th>
-                        <th>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.items && order.items.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>
-                            <strong>{item.crop_name}</strong>
-                          </td>
-                          <td>₹{parseFloat(item.price_per_unit).toFixed(2)} / {item.unit}</td>
-                          <td>{item.quantity} {item.unit}</td>
-                          <td><strong>₹{(parseFloat(item.price_per_unit) * item.quantity).toFixed(2)}</strong></td>
+                <div className="farmer-order-body">
+                  <div className="buyer-info-box">
+                    <h4>👤 Customer & Delivery Info</h4>
+                    <p><strong>Customer Name:</strong> {order.delivery_name || order.buyer_name || 'N/A'}</p>
+                    <p><strong>Phone:</strong> <a href={`tel:${order.delivery_phone || order.buyer_phone}`}>{order.delivery_phone || order.buyer_phone}</a></p>
+                    <p><strong>Delivery Address:</strong> {order.delivery_address}, {order.district}, {order.state} - {order.pincode}</p>
+                    <p><strong>Payment Method:</strong> {order.payment_method} ({order.payment_status})</p>
+                  </div>
+
+                  <div className="farmer-items-table-wrapper">
+                    <h4>🌾 Crop Ordered from You</h4>
+                    <table className="farmer-items-table">
+                      <thead>
+                        <tr>
+                          <th>Crop Name</th>
+                          <th>Price / Unit</th>
+                          <th>Quantity</th>
+                          <th>Subtotal</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>{order.product_name}</strong></td>
+                          <td>₹{parseFloat(order.price_per_unit).toFixed(2)} / {order.unit || 'kg'}</td>
+                          <td><strong>{order.quantity} {order.unit || 'kg'}</strong></td>
+                          <td><strong style={{ color: '#4ade80' }}>₹{parseFloat(order.total_price).toFixed(2)}</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

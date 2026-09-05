@@ -85,12 +85,15 @@ const initDb = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        order_number VARCHAR(50) DEFAULT NULL,
         buyer_id INT NOT NULL,
         total_amount DECIMAL(10,2) NOT NULL,
         delivery_charge DECIMAL(10,2) NOT NULL DEFAULT 50.00,
         payment_method VARCHAR(50) NOT NULL DEFAULT 'Cash on Delivery',
         payment_status ENUM('Pending', 'Paid') DEFAULT 'Pending',
-        order_status ENUM('Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Placed',
+        order_status ENUM('Pending', 'Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+        delivery_name VARCHAR(255) DEFAULT NULL,
+        delivery_phone VARCHAR(50) DEFAULT NULL,
         delivery_address TEXT NOT NULL,
         district VARCHAR(100) NOT NULL,
         state VARCHAR(100) NOT NULL,
@@ -100,6 +103,10 @@ const initDb = async () => {
         FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+
+    await addColumnSafely('orders', 'order_number', 'VARCHAR(50) DEFAULT NULL');
+    await addColumnSafely('orders', 'delivery_name', 'VARCHAR(255) DEFAULT NULL');
+    await addColumnSafely('orders', 'delivery_phone', 'VARCHAR(50) DEFAULT NULL');
 
     // 6. Create Order Items Table
     await pool.query(`

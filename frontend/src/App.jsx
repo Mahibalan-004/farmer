@@ -124,6 +124,18 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/buyer-dashboard/orders"
+          element={
+            <ProtectedRoute allowedRoles={['Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer', 'Farmer', 'Admin']}>
+              <>
+                <Navbar />
+                <MyOrdersPage />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Farmer Dashboard Protected Section with Sidebar Layout */}
         <Route

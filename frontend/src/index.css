@@ -2129,6 +2129,7 @@ textarea:disabled {
   text-transform: capitalize;
 }
 
+.badge-status-pending,
 .badge-status-placed {
   background: rgba(234, 179, 8, 0.15);
   border: 1px solid rgba(234, 179, 8, 0.4);

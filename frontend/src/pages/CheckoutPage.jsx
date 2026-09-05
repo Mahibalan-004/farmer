@@ -9,6 +9,7 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
+    delivery_name: '',
     delivery_address: '',
     district: '',
     state: '',
@@ -19,14 +20,16 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     fetchCart();
-    // Auto populate phone from logged in user if available
+    // Auto populate recipient name & phone from logged in user if available
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user.phone) {
-          setFormData(prev => ({ ...prev, delivery_phone: user.phone }));
-        }
+        setFormData(prev => ({
+          ...prev,
+          delivery_name: user.full_name || '',
+          delivery_phone: user.phone || ''
+        }));
       } catch (err) {
         console.error('Error parsing user data:', err);
       }
@@ -82,7 +85,7 @@ const CheckoutPage = () => {
       return;
     }
 
-    if (!formData.delivery_address.trim() || !formData.district.trim() || !formData.state.trim() || !formData.pincode.trim() || !formData.delivery_phone.trim()) {
+    if (!formData.delivery_name.trim() || !formData.delivery_address.trim() || !formData.district.trim() || !formData.state.trim() || !formData.pincode.trim() || !formData.delivery_phone.trim()) {
       setError('Please fill in all required delivery details.');
       return;
     }
@@ -107,7 +110,7 @@ const CheckoutPage = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        alert('🎉 Order Placed Successfully!');
+        alert(`🎉 ${data.message || 'Order Placed Successfully!'}`);
         navigate('/my-orders');
       } else {
         setError(data.message || 'Failed to place order. Please try again.');
@@ -154,8 +157,36 @@ const CheckoutPage = () => {
         <form className="checkout-grid" onSubmit={handleSubmitOrder}>
           {/* Shipping Form */}
           <div className="checkout-section-card">
-            <h3>📍 Shipping & Contact Details</h3>
+            <h3>📍 Shipping & Recipient Details</h3>
             
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="delivery_name">Recipient Full Name *</label>
+                <input
+                  type="text"
+                  id="delivery_name"
+                  name="delivery_name"
+                  placeholder="Full name of recipient"
+                  value={formData.delivery_name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="delivery_phone">Contact Phone *</label>
+                <input
+                  type="tel"
+                  id="delivery_phone"
+                  name="delivery_phone"
+                  placeholder="10-digit mobile number"
+                  value={formData.delivery_phone}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="delivery_address">Delivery Address *</label>
               <textarea
@@ -195,9 +226,7 @@ const CheckoutPage = () => {
                   required
                 />
               </div>
-            </div>
 
-            <div className="form-row">
               <div className="form-group">
                 <label htmlFor="pincode">Pincode *</label>
                 <input
@@ -206,19 +235,6 @@ const CheckoutPage = () => {
                   name="pincode"
                   placeholder="e.g. 641001"
                   value={formData.pincode}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="delivery_phone">Contact Phone *</label>
-                <input
-                  type="tel"
-                  id="delivery_phone"
-                  name="delivery_phone"
-                  placeholder="10-digit mobile number"
-                  value={formData.delivery_phone}
                   onChange={handleInputChange}
                   required
                 />
@@ -282,6 +298,7 @@ const CheckoutPage = () => {
                     <span className="checkout-item-name">{item.crop_name}</span>
                     <span className="checkout-item-sub">
                       {item.quantity} {item.unit} x ₹{parseFloat(item.price_per_unit).toFixed(2)}
+                      {item.farmer_name && <small style={{ display: 'block', color: '#4ade80' }}>👨‍🌾 Farmer: {item.farmer_name}</small>}
                     </span>
                   </div>
                   <span className="checkout-item-price">

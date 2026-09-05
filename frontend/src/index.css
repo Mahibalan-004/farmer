@@ -184,175 +184,318 @@ a {
   width: 100%;
 }
 
+.flex-1 {
+  flex: 1;
+}
+
 /* =========================================
-   FARMER DASHBOARD LAYOUT & SIDEBAR
+   MARKETPLACE & BUYER DASHBOARD STYLES
    ========================================= */
-.farmer-layout {
-  display: flex;
-  min-height: 100vh;
+.marketplace-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+  flex: 1;
 }
 
-.farmer-sidebar {
-  width: 260px;
-  background: #091322;
-  border-right: 1px solid var(--card-border);
+.marketplace-header-banner {
+  background: #0f172a;
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 2.25rem 2.5rem;
   display: flex;
-  flex-direction: column;
-  padding: 1.5rem 1rem;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 90;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
-.sidebar-brand {
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem 0.75rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sidebar-logo {
+.marketplace-title {
   font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+}
+
+.marketplace-subtitle {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.cart-counter-badge {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.cart-num {
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+/* Toolbar & Filters */
+.toolbar-card {
+  background: #0f172a;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.toolbar-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.flex-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .flex-2 {
+    grid-column: span 1;
+  }
+}
+
+/* Buyer Product Cards */
+.buyer-product-card {
+  position: relative;
+}
+
+.badge-grade-top {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+/* Product Details Modal */
+.product-modal-card {
+  max-width: 850px;
+  padding: 2.5rem;
+  position: relative;
+  text-align: left;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  color: #f87171;
+}
+
+.modal-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .modal-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-image-wrapper {
+  position: relative;
+  height: 100%;
+  min-height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+}
+
+.modal-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-placeholder {
+  height: 100%;
+  min-height: 250px;
+}
+
+.modal-category-tag {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.modal-product-title {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0.2rem 0 0.75rem;
+}
+
+.modal-price-box {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 0.75rem 1.25rem;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.modal-price {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
   font-weight: 800;
   color: #4ade80;
 }
 
-.sidebar-role-tag {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.modal-unit {
   color: var(--text-muted);
   font-weight: 600;
-  margin-top: 0.2rem;
 }
 
-.sidebar-menu {
+.modal-specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.spec-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-  flex: 1;
 }
 
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+.spec-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.spec-val {
+  color: #f1f5f9;
+  font-weight: 700;
+
+}
+
+.badge-grade {
+  color: #4ade80;
+  font-weight: 700;
+
+}
+
+.modal-section-title {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin: 1rem 0 0.5rem;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.25rem;
+}
+
+.farmer-info-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.85rem 1rem;
   border-radius: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
+  font-size: 0.875rem;
 }
 
-.sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-
-.sidebar-item.active {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3));
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #4ade80;
-}
-
-.sidebar-footer {
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.btn-sidebar-logout {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-sidebar-logout:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.farmer-main-content {
-  flex: 1;
-  margin-left: 260px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-@media (max-width: 850px) {
-  .farmer-sidebar {
-    position: relative;
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--card-border);
-  }
-  .farmer-main-content {
-    margin-left: 0;
-  }
-  .farmer-layout {
-    flex-direction: column;
-  }
-}
-
-.farmer-header {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--card-border);
-  padding: 1.25rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-title-area h2 {
-  font-family: var(--font-heading);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.header-subtitle {
-  font-size: 0.85rem;
+.farmer-info-card p {
+  margin-bottom: 0.25rem;
   color: var(--text-muted);
 }
 
-.header-user-area {
+.farmer-info-card p strong {
+  color: #e2e8f0;
+}
+
+.modal-description-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modal-actions-area {
   display: flex;
-  align-items: center;
   gap: 1rem;
+  align-items: center;
+  margin-top: 1.5rem;
 }
 
-.farmer-badge {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #4ade80;
+.qty-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0f172a;
+  border: 1px solid var(--card-border);
   padding: 0.4rem 0.8rem;
-  border-radius: 20px;
+  border-radius: 12px;
+}
+
+.qty-input {
+  width: 60px !important;
+  padding: 0.4rem !important;
+  text-align: center;
+}
+
+.qty-unit {
+  color: var(--text-muted);
   font-size: 0.85rem;
   font-weight: 600;
 }
 
-.farmer-name {
-  font-weight: 700;
+/* Toast Notifications */
+.toast-notification {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
   color: #fff;
+  padding: 1rem 1.75rem;
+  border-radius: 16px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 300;
+  animation: slideUp 0.3s ease;
 }
 
-.farmer-page-body {
-  padding: 2rem;
-  flex: 1;
+@keyframes slideUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* =========================================
@@ -385,7 +528,6 @@ label {
   color: #e2e8f0;
 }
 
-/* Inputs, Selects, Textareas, Dates */
 input[type="text"],
 input[type="email"],
 input[type="tel"],
@@ -419,14 +561,12 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25) !important;
 }
 
-/* Dropdown Select options dark styling */
 select option {
   background-color: #0f172a !important;
   color: #f8fafc !important;
   padding: 0.5rem;
 }
 
-/* File Upload Button Styling */
 input[type="file"] {
   padding: 0.6rem 0.8rem;
   background-color: var(--input-bg) !important;
@@ -452,7 +592,6 @@ input[type="file"]::-webkit-file-upload-button:hover {
   background: rgba(34, 197, 94, 0.35);
 }
 
-/* Disabled Inputs */
 .input-disabled,
 input:disabled,
 select:disabled,

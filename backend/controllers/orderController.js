@@ -166,7 +166,7 @@ const cancelOrder = async (req, res) => {
 
 // @desc    Update order status (Farmer/Admin)
 // @route   PUT /api/orders/:id/status
-// @access  Private (Farmer)
+// @access  Private (Farmer/Admin)
 const updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -180,15 +180,23 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    await updateOrderStatus(id, newStatus);
+    const farmerId = req.user.role === 'Farmer' ? req.user.id : null;
+    await updateOrderStatus(id, newStatus, farmerId);
+
+    const updatedOrder = await getOrderById(id);
 
     return res.status(200).json({
       success: true,
-      message: `Order #${id} status updated to '${newStatus}'`
+      message: `Order status updated to '${newStatus}' successfully!`,
+      order: updatedOrder
     });
   } catch (error) {
-    console.error('❌ Error updating order status:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Server error updating order status' });
+    console.error('❌ Error updating order status:', error.message);
+    const statusCode = error.message.includes('Unauthorized') ? 403 : 400;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Server error updating order status'
+    });
   }
 };
 

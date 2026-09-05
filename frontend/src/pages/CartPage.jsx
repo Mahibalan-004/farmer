@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 function CartPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
   const [cartItems, setCartItems] = useState([]);
-  const [summary, setSummary] = useState({
-    subtotal: 0,
-    delivery_charge: 0,
-    total_amount: 0
-  });
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
+
+  // Safe numeric calculation helpers
+  const getPrice = (item) => Number(item.price_per_unit ?? item.price ?? 0) || 0;
+  const getQuantity = (item) => Number(item.cart_quantity ?? item.cartQuantity ?? item.quantity ?? 1) || 1;
+  const getItemTotal = (item) => getPrice(item) * getQuantity(item);
+
+  const subtotal = cartItems.reduce((acc, item) => acc + getItemTotal(item), 0);
+  const deliveryCharge = 0;
+  const totalAmount = subtotal + deliveryCharge;
 
   useEffect(() => {
     fetchCart();
@@ -28,19 +38,26 @@ function CartPage() {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch('/api/cart', {
+      const res = await fetch('http://localhost:5000/api/cart', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to load cart');
+        const text = await res.text();
+        let message = 'Failed to load cart';
+        try {
+          const data = JSON.parse(text);
+          message = data.message || message;
+        } catch (e) {
+          console.error('Non-JSON error:', text);
+        }
+        throw new Error(message);
       }
 
+      const data = await res.json();
       setCartItems(data.items || []);
-      setSummary(data.summary || { subtotal: 0, delivery_charge: 0, total_amount: 0 });
     } catch (err) {
       console.error('Error loading cart:', err);
       setError(err.message);
@@ -50,17 +67,20 @@ function CartPage() {
   };
 
   const handleQuantityChange = async (item, newQty) => {
-    if (newQty <= 0) return;
-    if (newQty > parseFloat(item.stock_quantity)) {
-      setError(`Cannot exceed available stock of ${item.stock_quantity} ${item.unit}.`);
+    if (newQty < 1) return;
+    const stockQty = Number(item.stock_quantity ?? item.quantity ?? 9999);
+    if (newQty > stockQty) {
+      setError(`Cannot exceed available stock of ${stockQty} ${item.unit}.`);
       return;
     }
 
+    const itemId = item.item_id || item.id;
+
     try {
-      setUpdatingId(item.item_id);
+      setUpdatingId(itemId);
       setError('');
 
-      const res = await fetch(`/api/cart/${item.item_id}`, {
+      const res = await fetch(`http://localhost:5000/api/cart/items/${itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -69,13 +89,23 @@ function CartPage() {
         body: JSON.stringify({ quantity: newQty })
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to update quantity');
+        const text = await res.text();
+        let message = 'Failed to update quantity';
+        try {
+          const data = JSON.parse(text);
+          message = data.message || message;
+        } catch (e) {
+          console.error('Non-JSON error:', text);
+        }
+        throw new Error(message);
       }
 
-      fetchCart();
+      const data = await res.json();
+      if (data.success) {
+        // Immediate local state update for quick UI feedback
+        setCartItems(prev => prev.map(i => (i.item_id || i.id) === itemId ? { ...i, cart_quantity: newQty } : i));
+      }
     } catch (err) {
       console.error('Error updating quantity:', err);
       setError(err.message);
@@ -89,20 +119,26 @@ function CartPage() {
       setUpdatingId(itemId);
       setError('');
 
-      const res = await fetch(`/api/cart/${itemId}`, {
+      const res = await fetch(`http://localhost:5000/api/cart/items/${itemId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to remove item');
+        const text = await res.text();
+        let message = 'Failed to remove item';
+        try {
+          const data = JSON.parse(text);
+          message = data.message || message;
+        } catch (e) {
+          console.error('Non-JSON error:', text);
+        }
+        throw new Error(message);
       }
 
-      fetchCart();
+      setCartItems(prev => prev.filter(i => (i.item_id || i.id) !== itemId));
     } catch (err) {
       console.error('Error removing item:', err);
       setError(err.message);
@@ -142,7 +178,7 @@ function CartPage() {
           <div className="empty-icon">🌾</div>
           <h3>Your Shopping Cart is Empty</h3>
           <p>Explore our direct farmer marketplace and add fresh crops to your cart.</p>
-          <Link to="/buyer-dashboard" className="btn btn-primary mt-3">
+          <Link to="/marketplace" className="btn btn-primary mt-3">
             🛒 Explore Buyer Marketplace
           </Link>
         </div>
@@ -151,15 +187,19 @@ function CartPage() {
           {/* Left Column: Cart Items List */}
           <div className="cart-items-section">
             {cartItems.map((item) => {
-              const itemTotal = (parseFloat(item.price_per_unit) * parseFloat(item.cart_quantity)).toFixed(2);
-              const isStockExceeded = parseFloat(item.cart_quantity) > parseFloat(item.stock_quantity);
+              const price = getPrice(item);
+              const qty = getQuantity(item);
+              const itemTotal = getItemTotal(item);
+              const stockQty = Number(item.stock_quantity ?? item.quantity ?? 9999);
+              const isStockExceeded = qty > stockQty;
+              const imgUrl = getImageUrl(item.image_url);
 
               return (
-                <div key={item.item_id} className={`cart-item-card ${isStockExceeded ? 'stock-warning' : ''}`}>
+                <div key={item.item_id || item.id} className={`cart-item-card ${isStockExceeded ? 'stock-warning' : ''}`}>
                   <div className="cart-item-image">
-                    {item.image_url ? (
+                    {imgUrl ? (
                       <img
-                        src={item.image_url}
+                        src={imgUrl}
                         alt={item.crop_name}
                         onError={(e) => {
                           e.target.onerror = null;
@@ -175,15 +215,15 @@ function CartPage() {
                     <div className="cart-item-category">{item.category}</div>
                     <h3 className="cart-item-title">{item.crop_name}</h3>
                     <p className="cart-farmer-info">
-                      👨‍🌾 <strong>Farmer:</strong> {item.farmer_name} ({item.district || item.location || 'Local Farm'})
+                      👨‍🌾 <strong>Farmer:</strong> {item.farmer_name || 'Local Farmer'} ({item.district || item.location || 'Local Farm'})
                     </p>
                     <p className="cart-unit-price">
-                      Price: <strong>₹{item.price_per_unit}</strong> / {item.unit}
+                      Price: <strong>₹{price.toFixed(2)}</strong> / {item.unit || 'kg'}
                     </p>
 
                     {isStockExceeded && (
                       <div className="stock-alert">
-                        ⚠️ Requested qty exceeds available stock ({item.stock_quantity} {item.unit})
+                        ⚠️ Requested qty exceeds available stock ({stockQty} {item.unit || 'kg'})
                       </div>
                     )}
                   </div>
@@ -192,16 +232,16 @@ function CartPage() {
                   <div className="cart-item-actions">
                     <div className="quantity-control-box">
                       <button
-                        onClick={() => handleQuantityChange(item, parseFloat(item.cart_quantity) - 1)}
-                        disabled={updatingId === item.item_id || parseFloat(item.cart_quantity) <= 1}
+                        onClick={() => handleQuantityChange(item, qty - 1)}
+                        disabled={updatingId === (item.item_id || item.id) || qty <= 1}
                         className="btn-qty"
                       >
                         ➖
                       </button>
-                      <span className="qty-value">{item.cart_quantity}</span>
+                      <span className="qty-value">{qty}</span>
                       <button
-                        onClick={() => handleQuantityChange(item, parseFloat(item.cart_quantity) + 1)}
-                        disabled={updatingId === item.item_id || parseFloat(item.cart_quantity) >= parseFloat(item.stock_quantity)}
+                        onClick={() => handleQuantityChange(item, qty + 1)}
+                        disabled={updatingId === (item.item_id || item.id) || qty >= stockQty}
                         className="btn-qty"
                       >
                         ➕
@@ -209,12 +249,12 @@ function CartPage() {
                     </div>
 
                     <div className="cart-item-total">
-                      ₹{itemTotal}
+                      ₹{itemTotal.toFixed(2)}
                     </div>
 
                     <button
-                      onClick={() => handleRemoveItem(item.item_id)}
-                      disabled={updatingId === item.item_id}
+                      onClick={() => handleRemoveItem(item.item_id || item.id)}
+                      disabled={updatingId === (item.item_id || item.id)}
                       className="btn-remove-item"
                       title="Remove Item"
                     >
@@ -226,7 +266,7 @@ function CartPage() {
             })}
 
             <div className="cart-bottom-actions">
-              <Link to="/buyer-dashboard" className="btn btn-secondary">
+              <Link to="/marketplace" className="btn btn-secondary">
                 ← Continue Shopping
               </Link>
             </div>
@@ -244,19 +284,19 @@ function CartPage() {
 
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>₹{summary.subtotal}</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
 
               <div className="summary-row">
                 <span>Delivery Charge:</span>
-                <span>₹{summary.delivery_charge}</span>
+                <span className="free-tag">FREE</span>
               </div>
 
               <div className="summary-divider"></div>
 
               <div className="summary-row summary-total">
                 <span>Final Total:</span>
-                <span className="total-price-green">₹{summary.total_amount}</span>
+                <span className="total-price-green">₹{totalAmount.toFixed(2)}</span>
               </div>
 
               <button

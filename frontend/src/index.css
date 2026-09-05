@@ -1033,8 +1033,12 @@ textarea:disabled {
 
 /* Product Details Modal */
 .product-modal-card {
-  max-width: 850px;
-  padding: 2.5rem;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2.25rem;
   position: relative;
   text-align: left;
 }
@@ -2680,5 +2684,573 @@ html, body, #root {
     min-width: 500px;
   }
 }
+
+/* Full Screen Image Lightbox Viewer */
+.clickable-image {
+  cursor: pointer;
+  position: relative;
+  transition: opacity 0.2s ease;
+}
+
+.clickable-image:hover {
+  opacity: 0.92;
+}
+
+.image-zoom-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(11, 19, 41, 0.85);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  padding: 0.3rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(12px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  transition: all 0.2s ease;
+}
+
+.lightbox-close-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.lightbox-caption {
+  margin-top: 1rem;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  text-align: center;
+  background: rgba(11, 19, 41, 0.8);
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* =========================================
+   ORDER TRACKER & LIFECYCLE STYLES
+   ========================================= */
+
+.order-tracker-container {
+  background: rgba(11, 19, 41, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0;
+}
+
+.order-tracker-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.order-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 70px;
+}
+
+.step-node {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  color: #64748b;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.step-content {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.step-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.step-desc {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+/* Step Status Variations */
+.step-completed .step-node {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+.step-completed .step-label {
+  color: #86efac;
+}
+
+.step-current .step-node {
+  background: #16a34a;
+  border-color: #4ade80;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(74, 222, 128, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+.step-current .step-label {
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+
+.step-future .step-node {
+  opacity: 0.6;
+}
+
+.step-connector {
+  flex: 1;
+  height: 3px;
+  background: #334155;
+  margin: 0 -0.5rem 1.75rem -0.5rem;
+  transition: background 0.3s ease;
+  z-index: 1;
+}
+
+.connector-completed {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+/* Cancelled Banner */
+.order-tracker-cancelled-card {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 1rem 0;
+}
+
+.cancelled-icon-badge {
+  font-size: 2rem;
+  background: rgba(239, 68, 68, 0.2);
+  padding: 0.5rem;
+  border-radius: 12px;
+}
+
+.cancelled-info h4 {
+  color: #fca5a5;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.cancelled-info p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Controlled Action Buttons for Farmer */
+.farmer-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-action-confirm {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-action-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  transform: translateY(-2px);
+}
+
+.btn-action-cancel {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+.btn-action-process {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-action-process:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  transform: translateY(-2px);
+}
+
+.btn-action-ship {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-action-ship:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  transform: translateY(-2px);
+}
+
+.btn-action-deliver {
+  background: linear-gradient(135deg, #15803d, #166534);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-action-deliver:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-2px);
+}
+
+.badge-completed-delivered {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.badge-completed-cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+/* Modal Detailed View Layout */
+.modal-order-header-banner {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-order-header-banner h3 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+
+.modal-order-header-banner p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.modal-section-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.modal-section-box h4 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: #4ade80;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.4rem;
+}
+
+.modal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-item-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-item-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--card-border);
+}
+
+.modal-item-thumb-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.modal-item-info {
+  flex: 1;
+}
+
+.modal-item-info h5 {
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-bottom: 0.2rem;
+}
+
+.modal-item-info p {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.modal-item-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.modal-item-total span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.modal-item-total strong {
+  font-family: var(--font-heading);
+  color: #86efac;
+  font-size: 1rem;
+}
+
+.modal-detail-row p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.modal-detail-row p strong {
+  color: #ffffff;
+}
+
+.modal-detail-row a {
+  color: #60a5fa;
+}
+
+.payment-summary-box .summary-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.payment-summary-box .free-shipping {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.payment-summary-box .total-line {
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+  font-weight: 800;
+}
+
+.total-amount-highlight {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: #4ade80;
+}
+
+.payment-method-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Responsiveness for Order Tracker Component on mobile */
+@media (max-width: 640px) {
+  .order-tracker-steps {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .order-step {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    text-align: left;
+  }
+
+  .step-content {
+    margin-top: 0;
+    align-items: flex-start;
+  }
+
+  .step-connector {
+    width: 3px;
+    height: 20px;
+    margin: -0.75rem 0 -0.75rem 20px;
+  }
+
+  .farmer-item-card-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .farmer-item-thumb {
+    width: 65px;
+    height: 65px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  .farmer-item-details-block h5 {
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin-bottom: 0.3rem;
+  }
+
+  .farmer-item-details-block p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+  }
+}
+
 
 

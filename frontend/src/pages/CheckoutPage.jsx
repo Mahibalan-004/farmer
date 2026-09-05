@@ -18,6 +18,11 @@ const CheckoutPage = () => {
     payment_method: 'Cash on Delivery'
   });
 
+  // Safe numeric calculation helpers
+  const getPrice = (item) => Number(item.price_per_unit ?? item.price ?? 0);
+  const getQuantity = (item) => Number(item.cart_quantity ?? item.cartQuantity ?? item.quantity ?? 1);
+  const getItemTotal = (item) => getPrice(item) * getQuantity(item);
+
   useEffect(() => {
     fetchCart();
     // Auto populate recipient name & phone from logged in user if available
@@ -73,7 +78,7 @@ const CheckoutPage = () => {
   };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + (parseFloat(item.price_per_unit) * item.quantity), 0);
+    return cartItems.reduce((sum, item) => sum + getItemTotal(item), 0);
   };
 
   const handleSubmitOrder = async (e) => {
@@ -113,11 +118,11 @@ const CheckoutPage = () => {
         alert(`🎉 ${data.message || 'Order Placed Successfully!'}`);
         navigate('/my-orders');
       } else {
-        setError(data.message || 'Failed to place order. Please try again.');
+        setError(data.message || 'Unable to place your order. Please try again.');
       }
     } catch (err) {
       console.error('Order placement error:', err);
-      setError('Server error during order placement.');
+      setError('Unable to place your order. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -292,20 +297,26 @@ const CheckoutPage = () => {
             <h3>🛒 Order Summary ({cartItems.length} items)</h3>
             
             <div className="checkout-item-list">
-              {cartItems.map((item) => (
-                <div key={item.id} className="checkout-item-row">
-                  <div className="checkout-item-info">
-                    <span className="checkout-item-name">{item.crop_name}</span>
-                    <span className="checkout-item-sub">
-                      {item.quantity} {item.unit} x ₹{parseFloat(item.price_per_unit).toFixed(2)}
-                      {item.farmer_name && <small style={{ display: 'block', color: '#4ade80' }}>👨‍🌾 Farmer: {item.farmer_name}</small>}
+              {cartItems.map((item) => {
+                const price = getPrice(item);
+                const qty = getQuantity(item);
+                const itemTotal = getItemTotal(item);
+
+                return (
+                  <div key={item.id || item.item_id} className="checkout-item-row">
+                    <div className="checkout-item-info">
+                      <span className="checkout-item-name">{item.crop_name || item.product_name}</span>
+                      <span className="checkout-item-sub">
+                        {qty} {item.unit || 'kg'} × ₹{price.toFixed(2)}
+                        {item.farmer_name && <small style={{ display: 'block', color: '#4ade80' }}>👨‍🌾 Farmer: {item.farmer_name}</small>}
+                      </span>
+                    </div>
+                    <span className="checkout-item-price">
+                      ₹{itemTotal.toFixed(2)}
                     </span>
                   </div>
-                  <span className="checkout-item-price">
-                    ₹{(parseFloat(item.price_per_unit) * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="summary-divider"></div>

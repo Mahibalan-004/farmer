@@ -88,10 +88,10 @@ const initDb = async () => {
         order_number VARCHAR(50) DEFAULT NULL,
         buyer_id INT NOT NULL,
         total_amount DECIMAL(10,2) NOT NULL,
-        delivery_charge DECIMAL(10,2) NOT NULL DEFAULT 50.00,
+        delivery_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00,
         payment_method VARCHAR(50) NOT NULL DEFAULT 'Cash on Delivery',
         payment_status ENUM('Pending', 'Paid') DEFAULT 'Pending',
-        order_status ENUM('Pending', 'Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+        order_status ENUM('Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Pending',
         delivery_name VARCHAR(255) DEFAULT NULL,
         delivery_phone VARCHAR(50) DEFAULT NULL,
         delivery_address TEXT NOT NULL,
@@ -107,6 +107,16 @@ const initDb = async () => {
     await addColumnSafely('orders', 'order_number', 'VARCHAR(50) DEFAULT NULL');
     await addColumnSafely('orders', 'delivery_name', 'VARCHAR(255) DEFAULT NULL');
     await addColumnSafely('orders', 'delivery_phone', 'VARCHAR(50) DEFAULT NULL');
+
+    // Ensure order_status ENUM column is updated for existing databases
+    try {
+      await pool.query(`
+        ALTER TABLE orders 
+        MODIFY COLUMN order_status ENUM('Pending', 'Placed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Pending'
+      `);
+    } catch (enumErr) {
+      console.log('Notice updating orders order_status enum:', enumErr.message);
+    }
 
     // 6. Create Order Items Table
     await pool.query(`

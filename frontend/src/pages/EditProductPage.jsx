@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 function EditProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -22,9 +28,9 @@ function EditProductPage() {
     status: 'Available'
   });
 
-  const [currentImageUrl, setCurrentImageUrl] = useState(null);
+  const [existingImageUrl, setExistingImageUrl] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +45,7 @@ function EditProductPage() {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch('/api/products/my-products', {
+      const res = await fetch('http://localhost:5000/api/products/my-products', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -77,7 +83,9 @@ function EditProductPage() {
         status: found.status || 'Available'
       });
 
-      setCurrentImageUrl(found.image_url);
+      if (found.image_url) {
+        setExistingImageUrl(getImageUrl(found.image_url));
+      }
 
     } catch (err) {
       console.error('Error fetching product for edit:', err);
@@ -96,7 +104,7 @@ function EditProductPage() {
     const file = e.target.files[0];
     if (file) {
       setNewImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      setNewImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -119,7 +127,7 @@ function EditProductPage() {
         dataPayload.append('image', newImageFile);
       }
 
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/products/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -284,7 +292,7 @@ function EditProductPage() {
             </div>
           </div>
 
-          <div className="form-section-title">📷 Replace Image & Description</div>
+          <div className="form-section-title">📷 Product Image & Description</div>
 
           <div className="form-group">
             <label htmlFor="image">Replace Product Image (Optional)</label>
@@ -297,10 +305,21 @@ function EditProductPage() {
             />
           </div>
 
-          {(imagePreview || currentImageUrl) && (
+          {/* Image Preview Box */}
+          {(newImagePreview || existingImageUrl) && (
             <div className="image-preview-container">
-              <p>Current / New Image Preview:</p>
-              <img src={imagePreview || currentImageUrl} alt="Crop Preview" className="image-preview" />
+              <label className="preview-label">
+                {newImagePreview ? '📷 New Selected Image Preview:' : '🖼️ Existing Product Image:'}
+              </label>
+              <img
+                src={newImagePreview || existingImageUrl}
+                alt="Product Preview"
+                className="image-preview"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300';
+                }}
+              />
             </div>
           )}
 

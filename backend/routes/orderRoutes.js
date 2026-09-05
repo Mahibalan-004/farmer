@@ -12,10 +12,12 @@ const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
 // Buyer Protected Routes
 router.post('/', protect, placeOrder);
+router.get('/buyer', protect, getMyOrders);
 router.get('/my-orders', protect, getMyOrders);
 router.put('/:id/cancel', protect, cancelOrder);
 
 // Farmer Protected Routes
+router.get('/farmer', protect, authorizeRoles('Farmer'), getFarmerOrders);
 router.get('/farmer-orders', protect, authorizeRoles('Farmer'), getFarmerOrders);
 router.put('/:id/status', protect, authorizeRoles('Farmer', 'Admin'), updateStatus);
 

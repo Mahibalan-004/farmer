@@ -127,6 +127,7 @@ const createOrderTransaction = async ({
 };
 
 // Get Orders placed by Buyer
+// Get Orders placed by Buyer
 const getOrdersByBuyerId = async (buyer_id) => {
   const [orders] = await pool.query(
     'SELECT * FROM orders WHERE buyer_id = ? ORDER BY created_at DESC',
@@ -135,7 +136,8 @@ const getOrdersByBuyerId = async (buyer_id) => {
 
   for (const order of orders) {
     const [items] = await pool.query(
-      `SELECT oi.*, p.crop_name, p.image_url, p.unit, u.full_name AS farmer_name
+      `SELECT oi.*, p.crop_name, p.image_url, p.unit, 
+              u.full_name AS farmer_name, u.farm_location, u.district AS farmer_district, u.state AS farmer_state
        FROM order_items oi
        LEFT JOIN products p ON oi.product_id = p.id
        LEFT JOIN users u ON oi.farmer_id = u.id
@@ -155,7 +157,8 @@ const getOrderById = async (order_id) => {
 
   const order = orders[0];
   const [items] = await pool.query(
-    `SELECT oi.*, p.crop_name, p.image_url, p.unit, u.full_name AS farmer_name, u.phone AS farmer_phone
+    `SELECT oi.*, p.crop_name, p.image_url, p.unit, 
+            u.full_name AS farmer_name, u.phone AS farmer_phone, u.farm_location, u.district AS farmer_district, u.state AS farmer_state
      FROM order_items oi
      LEFT JOIN products p ON oi.product_id = p.id
      LEFT JOIN users u ON oi.farmer_id = u.id
@@ -176,7 +179,7 @@ const getOrdersForFarmer = async (farmer_id) => {
        o.order_number, o.order_status, o.payment_status, o.payment_method,
        o.delivery_name, o.delivery_phone, o.delivery_address, o.district, o.state, o.pincode, o.phone AS buyer_phone,
        u.full_name AS buyer_name, u.email AS buyer_email,
-       p.unit
+       p.unit, p.image_url
      FROM order_items oi
      JOIN orders o ON oi.order_id = o.id
      JOIN users u ON o.buyer_id = u.id
@@ -240,8 +243,19 @@ const cancelOrderTransaction = async (order_id, buyer_id) => {
   }
 };
 
-// Update Order Status (Farmer/Admin operation with automatic stock restoration if cancelled)
-const updateOrderStatus = async (order_id, new_status) => {
+// Allowed Status Transition State Machine
+const ALLOWED_TRANSITIONS = {
+  'Pending': ['Confirmed', 'Cancelled'],
+  'Placed': ['Confirmed', 'Cancelled'],
+  'Confirmed': ['Processing'],
+  'Processing': ['Shipped'],
+  'Shipped': ['Delivered'],
+  'Delivered': [],
+  'Cancelled': []
+};
+
+// Update Order Status (Farmer/Admin operation with state transition validation & stock restoration if cancelled)
+const updateOrderStatus = async (order_id, new_status, farmer_id = null) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -256,6 +270,29 @@ const updateOrderStatus = async (order_id, new_status) => {
     }
 
     const currentStatus = orders[0].order_status;
+
+    // Idempotent: If already in target status, return
+    if (currentStatus === new_status) {
+      await connection.commit();
+      return true;
+    }
+
+    // Authorization check for farmer
+    if (farmer_id) {
+      const [items] = await connection.query(
+        'SELECT id FROM order_items WHERE order_id = ? AND farmer_id = ?',
+        [order_id, farmer_id]
+      );
+      if (items.length === 0) {
+        throw new Error('Unauthorized: You can only update orders containing your listed crops.');
+      }
+    }
+
+    // Validate State Transition
+    const allowedNext = ALLOWED_TRANSITIONS[currentStatus] || [];
+    if (!allowedNext.includes(new_status)) {
+      throw new Error(`Invalid status transition from "${currentStatus}" to "${new_status}". Allowed next status: ${allowedNext.length > 0 ? allowedNext.join(', ') : 'None (Terminal status)'}`);
+    }
 
     // If changing to Cancelled and wasn't already Cancelled, restore stock
     if (new_status === 'Cancelled' && currentStatus !== 'Cancelled') {

@@ -1031,16 +1031,17 @@ textarea:disabled {
   backdrop-filter: blur(8px);
 }
 
-/* Product Details Modal */
+/* Product Details Desktop Wide Rectangle Modal & Cart Standard Image Styling */
 .product-modal-card {
-  max-width: 800px;
-  width: 90%;
+  max-width: 920px;
+  width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2.25rem;
   position: relative;
   text-align: left;
+  border-radius: 20px;
 }
 
 .modal-close-btn {
@@ -1053,6 +1054,7 @@ textarea:disabled {
   font-size: 2rem;
   cursor: pointer;
   transition: color 0.2s ease;
+  z-index: 10;
 }
 
 .modal-close-btn:hover {
@@ -1063,9 +1065,14 @@ textarea:disabled {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
   gap: 2rem;
+  align-items: start;
 }
 
 @media (max-width: 768px) {
+  .product-modal-card {
+    width: 95vw;
+    padding: 1.5rem;
+  }
   .modal-body-grid {
     grid-template-columns: 1fr;
   }
@@ -1073,8 +1080,10 @@ textarea:disabled {
 
 .modal-image-wrapper {
   position: relative;
+  width: 100%;
   height: 100%;
-  min-height: 280px;
+  min-height: 300px;
+  max-height: 420px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--card-border);
@@ -1084,6 +1093,52 @@ textarea:disabled {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Cart Product Image Standard Size (120px x 120px max, responsive on mobile) */
+.cart-item-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--card-bg, #1e293b);
+  border-radius: 16px;
+  border: 1px solid var(--card-border, #334155);
+  margin-bottom: 1rem;
+}
+
+.cart-item-image {
+  width: 120px;
+  height: 120px;
+  max-width: 120px;
+  max-height: 120px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .cart-item-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cart-item-image {
+    width: 90px;
+    height: 90px;
+    max-width: 90px;
+    max-height: 90px;
+  }
 }
 
 .modal-placeholder {

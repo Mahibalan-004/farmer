@@ -263,7 +263,7 @@ const RouteOptimizationPage = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem' }}>
                     <div>
                       <h4 style={{ margin: 0, color: '#34d399', fontSize: '1.1rem' }}>
-                        📦 Order {r.order_number || `#AGR-${1000 + (r.order_id || r.delivery_id)}`}
+                        📦 Order Number: {r.order_number || `AGRIF2C-${String(r.order_id || r.delivery_id).padStart(6, '0')}`}
                       </h4>
                       <small style={{ color: '#94a3b8' }}>
                         {r.order_date ? new Date(r.order_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recent'}

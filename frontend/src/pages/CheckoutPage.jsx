@@ -95,6 +95,17 @@ const CheckoutPage = () => {
       return;
     }
 
+    if (formData.delivery_address.trim().length < 10) {
+      setError('Delivery address must contain at least 10 characters.');
+      return;
+    }
+
+    const pincodeRegex = /^[0-9]{6}$/;
+    if (!pincodeRegex.test(formData.pincode.trim())) {
+      setError('Please enter a valid 6-digit pincode.');
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
@@ -248,45 +259,17 @@ const CheckoutPage = () => {
 
             <h3 style={{ marginTop: '1.5rem' }}>💳 Payment Method</h3>
             <div className="payment-options">
-              <label className={`payment-option ${formData.payment_method === 'Cash on Delivery' ? 'selected' : ''}`}>
+              <label className="payment-option selected">
                 <input
                   type="radio"
                   name="payment_method"
                   value="Cash on Delivery"
-                  checked={formData.payment_method === 'Cash on Delivery'}
-                  onChange={handleInputChange}
+                  checked={true}
+                  readOnly
                 />
                 <div className="payment-label">
                   <strong>💵 Cash on Delivery (COD)</strong>
-                  <span>Pay with cash upon delivery</span>
-                </div>
-              </label>
-
-              <label className={`payment-option ${formData.payment_method === 'UPI Payment' ? 'selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="UPI Payment"
-                  checked={formData.payment_method === 'UPI Payment'}
-                  onChange={handleInputChange}
-                />
-                <div className="payment-label">
-                  <strong>📱 UPI Payment (Google Pay / PhonePe / Paytm)</strong>
-                  <span>Scan & pay upon delivery</span>
-                </div>
-              </label>
-
-              <label className={`payment-option ${formData.payment_method === 'Online Payment' ? 'selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="Online Payment"
-                  checked={formData.payment_method === 'Online Payment'}
-                  onChange={handleInputChange}
-                />
-                <div className="payment-label">
-                  <strong>💳 Online Payment (Credit/Debit Card / NetBanking)</strong>
-                  <span>Instant digital payment (Demo)</span>
+                  <span>Pay with cash or scan QR upon physical produce delivery</span>
                 </div>
               </label>
             </div>

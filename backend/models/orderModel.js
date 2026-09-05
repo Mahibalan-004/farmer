@@ -56,18 +56,15 @@ const createOrderTransaction = async ({
     const total_amount = parseFloat((subtotal + delivery_charge).toFixed(2));
     const payment_status = (payment_method === 'Online Payment' || payment_method === 'UPI Payment') ? 'Paid' : 'Pending';
 
-    // Generate Order Number
-    const order_number = `ORD-${Date.now().toString().slice(-6)}${Math.floor(1000 + Math.random() * 9000)}`;
     const recipientPhone = delivery_phone || phone;
 
     // 2. Insert Order (Initial Status = 'Pending')
     const [orderResult] = await connection.query(
       `INSERT INTO orders (
-        order_number, buyer_id, total_amount, delivery_charge, payment_method, payment_status,
+        buyer_id, total_amount, delivery_charge, payment_method, payment_status,
         order_status, delivery_name, delivery_phone, delivery_address, district, state, pincode, phone
-      ) VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?)`,
       [
-        order_number,
         buyer_id,
         total_amount,
         delivery_charge,
@@ -84,6 +81,10 @@ const createOrderTransaction = async ({
     );
 
     const orderId = orderResult.insertId;
+    const order_number = `AGRIF2C-${String(orderId).padStart(6, '0')}`;
+
+    // Update order with database-safe sequential Order Number
+    await connection.query('UPDATE orders SET order_number = ? WHERE id = ?', [order_number, orderId]);
 
     // 3. Insert Order Items & Deduct Product Stock
     for (const item of validatedItems) {

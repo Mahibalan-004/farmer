@@ -205,7 +205,7 @@ const MyOrdersPage = () => {
               <div key={order.id} className="order-card">
                 <div className="order-card-header">
                   <div>
-                    <span className="order-id">Order {order.order_number || `#AGR-${1000 + order.id}`}</span>
+                    <span className="order-id">📦 Order Number: {order.order_number || `AGRIF2C-${String(order.id).padStart(6, '0')}`}</span>
                     <span className="order-date">
                       📅 {new Date(order.created_at).toLocaleDateString('en-IN', {
                         day: 'numeric',

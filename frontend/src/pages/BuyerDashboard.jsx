@@ -1,24 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProductDetailsModal from '../components/ProductDetailsModal';
+import { getProductImageUrl, handleImageError } from '../utils/imageHelper';
 
 function BuyerDashboard() {
+  const navigate = useNavigate();
   const userJson = localStorage.getItem('user');
   const user = userJson ? JSON.parse(userJson) : null;
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCartId, setAddingToCartId] = useState(null);
   const [error, setError] = useState('');
 
-  // Search & Filter State
+  // Draft Filter Inputs (Controlled by Form Inputs)
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedGrade, setSelectedGrade] = useState('All');
   const [locationSearch, setLocationSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
-  // Modal & Cart State
+  // Applied Filter Criteria (Updated ONLY when "Apply Filters" or "Reset" is clicked)
+  const [appliedFilters, setAppliedFilters] = useState({
+    searchQuery: '',
+    selectedCategory: 'All',
+    selectedGrade: 'All',
+    locationSearch: '',
+    sortBy: 'newest'
+  });
+
+  // Modals & Cart State
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [addedCartModal, setAddedCartModal] = useState(null); // { crop_name, quantity, unit }
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -45,14 +59,44 @@ function BuyerDashboard() {
     }
   };
 
+  // Explicit Apply Filters Trigger
+  const handleApplyFilters = (e) => {
+    if (e) e.preventDefault();
+    setAppliedFilters({
+      searchQuery,
+      selectedCategory,
+      selectedGrade,
+      locationSearch,
+      sortBy
+    });
+  };
+
+  // Reset Filters Trigger
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setSelectedGrade('All');
+    setLocationSearch('');
+    setSortBy('newest');
+    setAppliedFilters({
+      searchQuery: '',
+      selectedCategory: 'All',
+      selectedGrade: 'All',
+      locationSearch: '',
+      sortBy: 'newest'
+    });
+  };
+
   const handleAddToCart = async (product, qty = 1) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please log in to add items to your cart.');
+      // Show clean custom Login Required dialog instead of browser alert
+      setLoginModalOpen(true);
       return;
     }
 
     try {
+      setAddingToCartId(product.id);
       const res = await fetch('http://localhost:5000/api/cart', {
         method: 'POST',
         headers: {
@@ -68,41 +112,41 @@ function BuyerDashboard() {
       const data = await res.json();
       if (res.ok && data.success) {
         setCartCount((prev) => prev + qty);
-        setToastMessage(`🛒 Added ${qty} ${product.unit} of "${product.crop_name}" to your cart!`);
-        setTimeout(() => {
-          setToastMessage('');
-        }, 3000);
+        // Show clean custom Add to Cart Confirmation modal
+        setAddedCartModal({
+          crop_name: product.crop_name,
+          quantity: qty,
+          unit: product.unit || 'kg'
+        });
       } else {
         alert(data.message || 'Failed to add item to cart');
       }
     } catch (err) {
       console.error('Add to cart API error:', err);
       alert('Error adding item to cart.');
+    } finally {
+      setAddingToCartId(null);
     }
   };
 
-  // Filter & Sort Logic
+  // Filter & Sort Logic using appliedFilters
   const filteredProducts = products.filter((item) => {
-    // 1. Search Query
-    const matchesSearch = item.crop_name
-      ? item.crop_name.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
+    const matchesSearch = appliedFilters.searchQuery.trim() === '' ? true : (
+      item.crop_name && item.crop_name.toLowerCase().includes(appliedFilters.searchQuery.toLowerCase())
+    );
 
-    // 2. Category Filter
     const matchesCategory =
-      selectedCategory === 'All' ? true : item.category === selectedCategory;
+      appliedFilters.selectedCategory === 'All' ? true : item.category === appliedFilters.selectedCategory;
 
-    // 3. Quality Grade Filter
     const matchesGrade =
-      selectedGrade === 'All' ? true : item.quality_grade === selectedGrade;
+      appliedFilters.selectedGrade === 'All' ? true : item.quality_grade === appliedFilters.selectedGrade;
 
-    // 4. District / State / Location Search
-    const matchesLocation = locationSearch.trim() === '' ? true : (
-      (item.location && item.location.toLowerCase().includes(locationSearch.toLowerCase())) ||
-      (item.district && item.district.toLowerCase().includes(locationSearch.toLowerCase())) ||
-      (item.farmer_district && item.farmer_district.toLowerCase().includes(locationSearch.toLowerCase())) ||
-      (item.state && item.state.toLowerCase().includes(locationSearch.toLowerCase())) ||
-      (item.farmer_state && item.farmer_state.toLowerCase().includes(locationSearch.toLowerCase()))
+    const matchesLocation = appliedFilters.locationSearch.trim() === '' ? true : (
+      (item.location && item.location.toLowerCase().includes(appliedFilters.locationSearch.toLowerCase())) ||
+      (item.district && item.district.toLowerCase().includes(appliedFilters.locationSearch.toLowerCase())) ||
+      (item.farmer_district && item.farmer_district.toLowerCase().includes(appliedFilters.locationSearch.toLowerCase())) ||
+      (item.state && item.state.toLowerCase().includes(appliedFilters.locationSearch.toLowerCase())) ||
+      (item.farmer_state && item.farmer_state.toLowerCase().includes(appliedFilters.locationSearch.toLowerCase()))
     );
 
     return matchesSearch && matchesCategory && matchesGrade && matchesLocation;
@@ -110,17 +154,15 @@ function BuyerDashboard() {
 
   // Sort Products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'price-low') {
+    if (appliedFilters.sortBy === 'price-low') {
       return parseFloat(a.price_per_unit) - parseFloat(b.price_per_unit);
     }
-    if (sortBy === 'price-high') {
+    if (appliedFilters.sortBy === 'price-high') {
       return parseFloat(b.price_per_unit) - parseFloat(a.price_per_unit);
     }
-    // Default newest
     return new Date(b.created_at || 0) - new Date(a.created_at || 0);
   });
 
-  // Role Badge Helper
   const getRoleBadge = () => {
     const role = user?.role || 'Consumer';
     if (role === 'Retailer') return '🏬 Registered Retailer';
@@ -131,9 +173,6 @@ function BuyerDashboard() {
 
   return (
     <div className="marketplace-container">
-      {/* Toast Notification */}
-      {toastMessage && <div className="toast-notification">{toastMessage}</div>}
-
       {/* Header Banner */}
       <div className="marketplace-header-banner">
         <div>
@@ -149,16 +188,16 @@ function BuyerDashboard() {
         </div>
       </div>
 
-      {/* Search & Filters Toolbar */}
-      <div className="toolbar-card">
-        <div className="toolbar-row">
+      {/* Search & Filters Toolbar Form */}
+      <form className="toolbar-card" onSubmit={handleApplyFilters}>
+        <div className="toolbar-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
           {/* Crop Search */}
-          <div className="form-group flex-2">
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
             <label htmlFor="search">🔍 Search Crops</label>
             <input
               type="text"
               id="search"
-              placeholder="Search by crop name (e.g. Tomatoes, Rice, Wheat)..."
+              placeholder="Search crop name (e.g. Tomato, Onion, Rice)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -188,7 +227,7 @@ function BuyerDashboard() {
             <input
               type="text"
               id="location"
-              placeholder="Filter by location/district..."
+              placeholder="Filter by district or location..."
               value={locationSearch}
               onChange={(e) => setLocationSearch(e.target.value)}
             />
@@ -223,83 +262,90 @@ function BuyerDashboard() {
             </select>
           </div>
         </div>
+
+        {/* Filter Action Buttons Bar */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            🔍 Apply Filters
+          </button>
+          <button type="button" onClick={handleResetFilters} className="btn btn-secondary" style={{ padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            ↻ Reset
+          </button>
+        </div>
+      </form>
+
+      {/* Filter Result Counter Message */}
+      <div style={{ margin: '1rem 0', color: '#10b981', fontWeight: 600, fontSize: '0.95rem' }}>
+        {loading ? '⏳ Loading farm-fresh marketplace crops...' : sortedProducts.length > 0 
+          ? `Showing ${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'}`
+          : 'No products found matching your filters.'}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       {/* Marketplace Products Grid */}
       {loading ? (
-        <div className="loading-spinner">Loading farm-fresh marketplace crops...</div>
+        <div className="loading-spinner">⏳ Loading farm-fresh marketplace crops...</div>
       ) : sortedProducts.length === 0 ? (
         <div className="empty-state-card">
           <div className="empty-icon">🌽</div>
-          <h3>No Available Crops Match Your Filter</h3>
+          <h3>No Available Crops Match Your Filters</h3>
           <p>Try adjusting your search query, location, or category filters.</p>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setSelectedCategory('All');
-              setSelectedGrade('All');
-              setLocationSearch('');
-              setSortBy('newest');
-            }}
-            className="btn btn-secondary mt-3"
-          >
+          <button onClick={handleResetFilters} className="btn btn-secondary mt-3">
             Reset Filters
           </button>
         </div>
       ) : (
         <div className="products-grid">
-          {sortedProducts.map((product) => (
-            <div key={product.id} className="product-card buyer-product-card">
-              <div className="product-image-area">
-                {product.image_url ? (
+          {sortedProducts.map((product) => {
+            const imgSrc = getProductImageUrl(product);
+            const isAdding = addingToCartId === product.id;
+
+            return (
+              <div key={product.id} className="product-card buyer-product-card">
+                <div className="product-image-area">
                   <img
-                    src={product.image_url}
+                    src={imgSrc}
                     alt={product.crop_name}
                     className="product-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
-                    }}
+                    onError={(e) => handleImageError(e, product)}
                   />
-                ) : (
-                  <div className="product-img-placeholder">🌱 Farm Harvest</div>
-                )}
-                <span className="badge-grade-top">{product.quality_grade || 'Standard'}</span>
+                  <span className="badge-grade-top">{product.quality_grade || 'Standard'}</span>
+                </div>
+
+                <div className="product-card-body">
+                  <div className="product-category-tag">{product.category}</div>
+                  <h3 className="product-title">{product.crop_name}</h3>
+
+                  <div className="product-price-tag">
+                    ₹{parseFloat(product.price_per_unit).toFixed(2)} <span className="unit-text">/ {product.unit}</span>
+                  </div>
+
+                  <div className="product-details-list">
+                    <p>📦 <strong>Stock:</strong> {product.quantity} {product.unit}</p>
+                    <p>📍 <strong>Location:</strong> {product.farmer_district || product.district || 'Local Farm'}, {product.farmer_state || product.state || ''}</p>
+                    <p>👨‍🌾 <strong>Farmer:</strong> {product.farmer_name || 'Verified Farmer'}</p>
+                  </div>
+
+                  <div className="product-actions">
+                    <button
+                      onClick={() => setSelectedProduct(product)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      👁️ View Details
+                    </button>
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      disabled={isAdding}
+                      className="btn btn-primary btn-sm"
+                    >
+                      {isAdding ? '⏳ Adding...' : '🛒 Add to Cart'}
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              <div className="product-card-body">
-                <div className="product-category-tag">{product.category}</div>
-                <h3 className="product-title">{product.crop_name}</h3>
-
-                <div className="product-price-tag">
-                  ₹{product.price_per_unit} <span className="unit-text">/ {product.unit}</span>
-                </div>
-
-                <div className="product-details-list">
-                  <p>📦 <strong>Stock:</strong> {product.quantity} {product.unit}</p>
-                  <p>📍 <strong>Location:</strong> {product.farmer_district || product.district || 'Local Farm'}, {product.farmer_state || product.state || ''}</p>
-                  <p>👨‍🌾 <strong>Farmer:</strong> {product.farmer_name || 'Verified Farmer'}</p>
-                </div>
-
-                <div className="product-actions">
-                  <button
-                    onClick={() => setSelectedProduct(product)}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    👁️ View Details
-                  </button>
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="btn btn-primary btn-sm"
-                  >
-                    🛒 Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -310,6 +356,70 @@ function BuyerDashboard() {
           onClose={() => setSelectedProduct(null)}
           onAddToCart={handleAddToCart}
         />
+      )}
+
+      {/* 🔐 Custom Login Required Modal */}
+      {loginModalOpen && (
+        <div className="modal-overlay" onClick={() => setLoginModalOpen(false)} style={{ zIndex: 1200 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', width: '90%', textAlign: 'center', padding: '1.75rem' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔐</div>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Login Required</h3>
+            <p style={{ color: '#cbd5e1', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+              Please log in to add items to your cart and continue shopping.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setLoginModalOpen(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setLoginModalOpen(false);
+                  navigate('/login');
+                }}
+                style={{ flex: 1 }}
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Custom Add to Cart Confirmation Modal */}
+      {addedCartModal && (
+        <div className="modal-overlay" onClick={() => setAddedCartModal(null)} style={{ zIndex: 1200 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', textAlign: 'center', padding: '1.75rem' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Added to Cart!</h3>
+            <p style={{ color: '#cbd5e1', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+              Added <strong>{addedCartModal.quantity} {addedCartModal.unit}</strong> of <strong>"{addedCartModal.crop_name}"</strong> to your cart.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setAddedCartModal(null)}
+                style={{ flex: 1, minWidth: '130px' }}
+              >
+                Continue Shopping
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setAddedCartModal(null);
+                  navigate('/cart');
+                }}
+                style={{ flex: 1, minWidth: '120px' }}
+              >
+                Go to Cart 🛒
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

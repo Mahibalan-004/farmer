@@ -1,24 +1,14 @@
 import React, { useState } from 'react';
-
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
-  return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
-};
+import { getProductImageUrl, handleImageError } from '../utils/imageHelper';
 
 function ProductDetailsModal({ product, onClose, onAddToCart }) {
   const [selectedQty, setSelectedQty] = useState(1);
-  const [cartSuccess, setCartSuccess] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (!product) return null;
 
-  const handleAddToCart = () => {
+  const handleAddToCartClick = () => {
     onAddToCart(product, selectedQty);
-    setCartSuccess(true);
-    setTimeout(() => {
-      setCartSuccess(false);
-    }, 2000);
   };
 
   const formatDate = (dateStr) => {
@@ -30,7 +20,7 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
     });
   };
 
-  const mainImageUrl = getImageUrl(product.image_url);
+  const mainImageUrl = getProductImageUrl(product);
 
   return (
     <>
@@ -38,35 +28,29 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
         <div className="modal-card product-modal-card" onClick={(e) => e.stopPropagation()}>
           <button onClick={onClose} className="modal-close-btn" title="Close Details">&times;</button>
 
+          {/* Desktop 2-Column Wide Rectangle Layout / Mobile Vertical Stack */}
           <div className="modal-body-grid">
-            {/* Left Column: Image with click-to-lightbox trigger */}
+            {/* Left Column: Product Image */}
             <div className="modal-image-col">
               <div
                 className="modal-image-wrapper clickable-image"
                 onClick={() => setLightboxOpen(true)}
                 title="Click to view full screen image"
               >
-                {mainImageUrl ? (
-                  <img
-                    src={mainImageUrl}
-                    alt={product.crop_name}
-                    className="modal-product-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600';
-                    }}
-                  />
-                ) : (
-                  <div className="product-img-placeholder modal-placeholder">🌱 No Image Available</div>
-                )}
+                <img
+                  src={mainImageUrl}
+                  alt={product.crop_name}
+                  className="modal-product-img"
+                  onError={(e) => handleImageError(e, product)}
+                />
                 <span className="image-zoom-hint">🔍 Click to Enlarge</span>
                 <span className={`status-badge ${product.status === 'Available' ? 'badge-available' : 'badge-sold'}`}>
-                  {product.status}
+                  {product.status || 'Available'}
                 </span>
               </div>
             </div>
 
-            {/* Right Column: Information */}
+            {/* Right Column: Product Information & Actions */}
             <div className="modal-info-col">
               <span className="modal-category-tag">{product.category}</span>
               <h2 className="modal-product-title">{product.crop_name}</h2>
@@ -97,10 +81,10 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
 
               <div className="modal-section-title">📍 Farm & Farmer Details</div>
               <div className="farmer-info-card">
-                <p><strong>Farmer Name:</strong> {product.farmer_name || 'Registered Farmer'}</p>
+                <p><strong>Farmer Name:</strong> {product.farmer_name || 'Verified Farmer'}</p>
                 <p><strong>Contact Phone:</strong> {product.farmer_phone || 'Contact via Platform'}</p>
-                <p><strong>Location:</strong> {product.location || 'N/A'}</p>
-                <p><strong>District & State:</strong> {product.farmer_district || product.district || 'N/A'}, {product.farmer_state || product.state || ''}</p>
+                <p><strong>Location:</strong> {product.location || product.farmer_location || 'Local Farm'}</p>
+                <p><strong>District & State:</strong> {product.farmer_district || product.district || 'Local District'}, {product.farmer_state || product.state || ''}</p>
               </div>
 
               {product.description && (
@@ -110,16 +94,11 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
                 </>
               )}
 
-              {cartSuccess && (
-                <div className="alert alert-success mt-3">
-                  ✅ Added {selectedQty} {product.unit} of {product.crop_name} to cart!
-                </div>
-              )}
-
               <div className="modal-actions-area">
                 <div className="qty-selector">
-                  <label>Qty:</label>
+                  <label htmlFor="modal-qty-input">Qty:</label>
                   <input
+                    id="modal-qty-input"
                     type="number"
                     min="1"
                     max={product.quantity || 9999}
@@ -130,7 +109,7 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
                   <span className="qty-unit">{product.unit}</span>
                 </div>
 
-                <button onClick={handleAddToCart} className="btn btn-primary btn-lg flex-1">
+                <button onClick={handleAddToCartClick} className="btn btn-primary btn-lg flex-1">
                   🛒 Add to Cart
                 </button>
               </div>
@@ -147,12 +126,13 @@ function ProductDetailsModal({ product, onClose, onAddToCart }) {
               ✕
             </button>
             <img
-              src={mainImageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1000'}
+              src={mainImageUrl}
               alt={`${product.crop_name} Full View`}
               className="lightbox-image"
+              onError={(e) => handleImageError(e, product)}
             />
             <div className="lightbox-caption">
-              <strong>{product.crop_name}</strong> - {product.category} (₹{product.price_per_unit} / {product.unit})
+              <strong>{product.crop_name}</strong> - {product.category} (₹{parseFloat(product.price_per_unit).toFixed(2)} / {product.unit})
             </div>
           </div>
         </div>

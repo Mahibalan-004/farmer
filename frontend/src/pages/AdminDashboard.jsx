@@ -398,7 +398,7 @@ const AdminDashboard = () => {
                 <div key={delivery.id} className="delivery-card">
                   <div className="delivery-card-header">
                     <div>
-                      <span className="order-id">📦 {delivery.order_number || `Order #AGR-${1000 + delivery.order_id}`}</span>
+                      <span className="order-id">📦 Order Number: {delivery.order_number || `AGRIF2C-${String(delivery.order_id).padStart(6, '0')}`}</span>
                       <span className="order-date">
                         📅 Date: {new Date(delivery.order_date).toLocaleDateString('en-IN')}
                       </span>

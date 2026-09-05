@@ -119,6 +119,17 @@ const initDb = async () => {
       console.log('Notice updating orders order_status enum:', enumErr.message);
     }
 
+    // Safely migrate existing order numbers to clean sequential format AGRIF2C-000001, AGRIF2C-000002...
+    try {
+      await pool.query(`
+        UPDATE orders 
+        SET order_number = CONCAT('AGRIF2C-', LPAD(id, 6, '0'))
+        WHERE order_number IS NULL OR order_number NOT LIKE 'AGRIF2C-%'
+      `);
+    } catch (migErr) {
+      console.log('Notice migrating order numbers:', migErr.message);
+    }
+
     // 6. Create Order Items Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS order_items (

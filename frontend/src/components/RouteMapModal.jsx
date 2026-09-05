@@ -139,7 +139,7 @@ const RouteMapModal = ({ route, onClose }) => {
               🗺️ Smart Route Optimization & Insights
             </h3>
             <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>
-              Order {route.order_number || `#AGR-${1000 + (route.order_id || route.delivery_id)}`}
+              Order Number: {route.order_number || `AGRIF2C-${String(route.order_id || route.delivery_id).padStart(6, '0')}`}
             </p>
           </div>
           <button 

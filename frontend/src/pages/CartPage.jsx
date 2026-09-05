@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
-const getImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
-  return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
-};
+import { getProductImageUrl, handleImageError } from '../utils/imageHelper';
 
 function CartPage() {
   const navigate = useNavigate();
@@ -192,23 +187,16 @@ function CartPage() {
               const itemTotal = getItemTotal(item);
               const stockQty = Number(item.stock_quantity ?? item.quantity ?? 9999);
               const isStockExceeded = qty > stockQty;
-              const imgUrl = getImageUrl(item.image_url);
+              const imgSrc = getProductImageUrl(item);
 
               return (
                 <div key={item.item_id || item.id} className={`cart-item-card ${isStockExceeded ? 'stock-warning' : ''}`}>
                   <div className="cart-item-image">
-                    {imgUrl ? (
-                      <img
-                        src={imgUrl}
-                        alt={item.crop_name}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200';
-                        }}
-                      />
-                    ) : (
-                      <div className="product-img-placeholder">🌱 Crop</div>
-                    )}
+                    <img
+                      src={imgSrc}
+                      alt={item.crop_name}
+                      onError={(e) => handleImageError(e, item)}
+                    />
                   </div>
 
                   <div className="cart-item-details">

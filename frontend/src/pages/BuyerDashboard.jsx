@@ -45,12 +45,40 @@ function BuyerDashboard() {
     }
   };
 
-  const handleAddToCart = (product, qty = 1) => {
-    setCartCount((prev) => prev + qty);
-    setToastMessage(`🛒 Added ${qty} ${product.unit} of "${product.crop_name}" to your cart!`);
-    setTimeout(() => {
-      setToastMessage('');
-    }, 3000);
+  const handleAddToCart = async (product, qty = 1) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in to add items to your cart.');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_id: product.id,
+          quantity: qty
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCartCount((prev) => prev + qty);
+        setToastMessage(`🛒 Added ${qty} ${product.unit} of "${product.crop_name}" to your cart!`);
+        setTimeout(() => {
+          setToastMessage('');
+        }, 3000);
+      } else {
+        alert(data.message || 'Failed to add item to cart');
+      }
+    } catch (err) {
+      console.error('Add to cart API error:', err);
+      alert('Error adding item to cart.');
+    }
   };
 
   // Filter & Sort Logic

@@ -14,8 +14,12 @@ import FarmerProfilePage from './pages/FarmerProfilePage';
 import AddProductPage from './pages/AddProductPage';
 import MyProductsPage from './pages/MyProductsPage';
 import EditProductPage from './pages/EditProductPage';
+import FarmerOrdersPage from './pages/FarmerOrdersPage';
 
 import BuyerDashboard from './pages/BuyerDashboard';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import MyOrdersPage from './pages/MyOrdersPage';
 import AdminDashboard from './pages/AdminDashboard';
 
 // Guard for protected routes
@@ -31,7 +35,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === 'Farmer') return <Navigate to="/farmer-dashboard" replace />;
     if (user.role === 'Admin') return <Navigate to="/admin-dashboard" replace />;
-    return <Navigate to="/buyer-dashboard" replace />;
+    return <Navigate to="/marketplace" replace />;
   }
 
   return children;
@@ -72,6 +76,54 @@ function App() {
             </>
           }
         />
+        <Route
+          path="/marketplace"
+          element={
+            <>
+              <Navbar />
+              <BuyerDashboard />
+              <Footer />
+            </>
+          }
+        />
+
+        {/* Shopping Cart & Orders Routes */}
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute allowedRoles={['Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer', 'Farmer', 'Admin']}>
+              <>
+                <Navbar />
+                <CartPage />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute allowedRoles={['Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer', 'Farmer', 'Admin']}>
+              <>
+                <Navbar />
+                <CheckoutPage />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-orders"
+          element={
+            <ProtectedRoute allowedRoles={['Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer', 'Farmer', 'Admin']}>
+              <>
+                <Navbar />
+                <MyOrdersPage />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Farmer Dashboard Protected Section with Sidebar Layout */}
         <Route
@@ -87,9 +139,10 @@ function App() {
           <Route path="add-product" element={<AddProductPage />} />
           <Route path="my-products" element={<MyProductsPage />} />
           <Route path="edit-product/:id" element={<EditProductPage />} />
+          <Route path="orders" element={<FarmerOrdersPage />} />
         </Route>
 
-        {/* Buyer & Admin Dashboards */}
+        {/* Legacy Buyer Dashboard redirect / route */}
         <Route
           path="/buyer-dashboard"
           element={

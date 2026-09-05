@@ -50,6 +50,14 @@ function FarmerSidebar() {
           <span className="menu-icon">🌾</span>
           <span>My Products</span>
         </NavLink>
+
+        <NavLink
+          to="/farmer-dashboard/orders"
+          className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+        >
+          <span className="menu-icon">📦</span>
+          <span>Orders</span>
+        </NavLink>
       </nav>
 
       <div className="sidebar-footer">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import OrderTracker from '../components/OrderTracker';
+import DeliveryTracker from '../components/DeliveryTracker';
 
 const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -69,9 +70,9 @@ const MyOrdersPage = () => {
 
       if (res.ok && data.success) {
         setSuccessMsg(data.message || 'Order cancelled successfully.');
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: 'Cancelled' } : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: 'Cancelled', delivery_status: 'Cancelled' } : o));
         if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder(prev => ({ ...prev, order_status: 'Cancelled' }));
+          setSelectedOrder(prev => ({ ...prev, order_status: 'Cancelled', delivery_status: 'Cancelled' }));
         }
       } else {
         setError(data.message || 'Failed to cancel order.');
@@ -87,10 +88,12 @@ const MyOrdersPage = () => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'Pending':
-      case 'Placed':
-        return 'badge-status-pending';
+      case 'Placed': return 'badge-status-pending';
       case 'Confirmed': return 'badge-status-confirmed';
       case 'Processing': return 'badge-status-processing';
+      case 'Ready for Pickup': return 'badge-status-ready';
+      case 'Picked Up': return 'badge-status-picked';
+      case 'Out for Delivery':
       case 'Shipped': return 'badge-status-shipped';
       case 'Delivered': return 'badge-status-delivered';
       case 'Cancelled': return 'badge-status-cancelled';
@@ -104,8 +107,11 @@ const MyOrdersPage = () => {
       case 'Placed': return '🟡';
       case 'Confirmed': return '🟢';
       case 'Processing': return '🔵';
+      case 'Ready for Pickup': return '📦';
+      case 'Picked Up': return '🚚';
+      case 'Out for Delivery':
       case 'Shipped': return '🚚';
-      case 'Delivered': return '📦';
+      case 'Delivered': return '🏠';
       case 'Cancelled': return '❌';
       default: return '📦';
     }
@@ -114,15 +120,15 @@ const MyOrdersPage = () => {
   const filteredOrders = orders.filter(order => {
     if (activeFilter === 'All') return true;
     const normalized = order.order_status === 'Placed' ? 'Pending' : order.order_status;
-    return normalized === activeFilter;
+    return normalized === activeFilter || order.delivery_status === activeFilter;
   });
 
   return (
     <div className="my-orders-container">
       <div className="orders-header">
         <div>
-          <h2>📦 My Orders & Tracking</h2>
-          <p>Track your purchases, view delivery details, and monitor order lifecycle</p>
+          <h2>📦 My Orders & Live Delivery Tracking</h2>
+          <p>Track your purchases, view real-time delivery status, and monitor order lifecycle</p>
         </div>
         <Link to="/marketplace" className="btn-secondary">
           🛍️ Continue Shopping
@@ -134,7 +140,7 @@ const MyOrdersPage = () => {
 
       {/* Filter Tabs */}
       <div className="order-filter-tabs">
-        {['All', 'Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(filter => (
+        {['All', 'Pending', 'Confirmed', 'Processing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'].map(filter => (
           <button
             key={filter}
             className={`filter-tab ${activeFilter === filter ? 'active' : ''}`}
@@ -164,8 +170,9 @@ const MyOrdersPage = () => {
       ) : (
         <div className="orders-list">
           {filteredOrders.map(order => {
-            const currentStatus = order.order_status === 'Placed' ? 'Pending' : order.order_status;
-            const isCancelable = currentStatus === 'Pending';
+            const currentOrderStatus = order.order_status === 'Placed' ? 'Pending' : order.order_status;
+            const currentDeliveryStatus = order.delivery_status || 'Pending';
+            const isCancelable = currentOrderStatus === 'Pending';
 
             return (
               <div key={order.id} className="order-card">
@@ -182,9 +189,12 @@ const MyOrdersPage = () => {
                       })}
                     </span>
                   </div>
-                  <div className="order-badges">
-                    <span className={`status-badge ${getStatusBadgeClass(currentStatus)}`}>
-                      {getStatusIcon(currentStatus)} {currentStatus}
+                  <div className="order-badges" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span className={`status-badge ${getStatusBadgeClass(currentOrderStatus)}`}>
+                      📦 Order: {currentOrderStatus}
+                    </span>
+                    <span className={`status-badge ${getStatusBadgeClass(currentDeliveryStatus)}`}>
+                      🚚 Delivery: {currentDeliveryStatus}
                     </span>
                     <span className={`payment-badge ${order.payment_status === 'Paid' ? 'paid' : 'pending'}`}>
                       {order.payment_status}
@@ -192,9 +202,10 @@ const MyOrdersPage = () => {
                   </div>
                 </div>
 
-                {/* Visual Order Tracker Bar */}
+                {/* Visual Order & Delivery Tracker Bars */}
                 <div className="buyer-order-tracker-box">
-                  <OrderTracker status={currentStatus} />
+                  <OrderTracker status={currentOrderStatus} />
+                  <DeliveryTracker status={currentDeliveryStatus} />
                 </div>
 
                 <div className="order-card-body">
@@ -244,15 +255,8 @@ const MyOrdersPage = () => {
                         <span className="total-val">₹{parseFloat(order.total_amount).toFixed(2)}</span>
                       </div>
 
-                      <div className="btn-group-row">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          👁️ View Full Details
-                        </button>
-
-                        {isCancelable && (
+                      {isCancelable && (
+                        <div className="btn-group-row">
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             disabled={cancellingId === order.id}
@@ -260,8 +264,8 @@ const MyOrdersPage = () => {
                           >
                             {cancellingId === order.id ? 'Cancelling...' : '❌ Cancel Order'}
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -271,23 +275,42 @@ const MyOrdersPage = () => {
         </div>
       )}
 
-      {/* Comprehensive Buyer Order Details Modal */}
+      {/* Comprehensive Buyer Order Details & Delivery Tracking Modal */}
       {selectedOrder && (
         <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
           <div className="modal-card order-details-modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedOrder(null)}>&times;</button>
 
             <div className="modal-order-header-banner">
-              <h3>📦 Order Details - {selectedOrder.order_number || `#AGR-${1000 + selectedOrder.id}`}</h3>
+              <h3>📦 Order & Delivery Tracking - {selectedOrder.order_number || `#AGR-${1000 + selectedOrder.id}`}</h3>
               <p>Placed on {new Date(selectedOrder.created_at).toLocaleString('en-IN')}</p>
             </div>
 
-            {/* Visual Tracker inside Modal */}
+            {/* Visual Trackers inside Modal */}
             <div className="modal-tracker-wrapper">
               <OrderTracker status={selectedOrder.order_status === 'Placed' ? 'Pending' : selectedOrder.order_status} />
+              <DeliveryTracker status={selectedOrder.delivery_status || selectedOrder.order_status} />
             </div>
 
-            {/* Section 1: Ordered Products */}
+            {/* Section 1: Delivery & Logistics Tracking */}
+            <div className="modal-section-box logistics-tracking-box">
+              <h4>🚚 Delivery & Logistics Details</h4>
+              <div className="modal-detail-row">
+                <p><strong>Order Status:</strong> <span className={`status-badge ${getStatusBadgeClass(selectedOrder.order_status)}`}>📦 {selectedOrder.order_status}</span></p>
+                <p><strong>Delivery Status:</strong> <span className={`status-badge ${getStatusBadgeClass(selectedOrder.delivery_status || 'Pending')}`}>{getStatusIcon(selectedOrder.delivery_status)} {selectedOrder.delivery_status || 'Pending'}</span></p>
+                <p><strong>Recipient Name:</strong> {selectedOrder.delivery_name || 'Buyer'}</p>
+                <p><strong>Contact Phone:</strong> {selectedOrder.delivery_phone || selectedOrder.phone}</p>
+                <p><strong>Delivery Address:</strong> {selectedOrder.delivery_address}, {selectedOrder.district}, {selectedOrder.state} - {selectedOrder.pincode}</p>
+                {selectedOrder.partner_name && (
+                  <p><strong>Assigned Delivery Partner:</strong> {selectedOrder.partner_name} ({selectedOrder.vehicle_type} - {selectedOrder.vehicle_number}) - <a href={`tel:${selectedOrder.partner_phone}`}>{selectedOrder.partner_phone}</a></p>
+                )}
+                {selectedOrder.estimated_delivery_date && (
+                  <p><strong>Estimated Delivery Date:</strong> {new Date(selectedOrder.estimated_delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Section 2: Ordered Products */}
             <div className="modal-section-box">
               <h4>🌾 Ordered Products</h4>
               <div className="modal-items-list">
@@ -312,9 +335,9 @@ const MyOrdersPage = () => {
               </div>
             </div>
 
-            {/* Section 2: Farmer Details */}
+            {/* Section 3: Farmer Details */}
             <div className="modal-section-box">
-              <h4>👨‍🌾 Farmer Details</h4>
+              <h4>👨‍🌾 Farmer Origin Details</h4>
               {selectedOrder.items && selectedOrder.items.length > 0 ? (
                 Array.from(new Set(selectedOrder.items.map(i => i.farmer_id))).map(fId => {
                   const item = selectedOrder.items.find(i => i.farmer_id === fId);
@@ -330,19 +353,6 @@ const MyOrdersPage = () => {
               ) : (
                 <p>Farmer details updated upon dispatch.</p>
               )}
-            </div>
-
-            {/* Section 3: Delivery Details */}
-            <div className="modal-section-box">
-              <h4>📍 Delivery Details</h4>
-              <div className="modal-detail-row">
-                <p><strong>Recipient Name:</strong> {selectedOrder.delivery_name || 'Buyer'}</p>
-                <p><strong>Phone Number:</strong> {selectedOrder.delivery_phone || selectedOrder.phone}</p>
-                <p><strong>Delivery Address:</strong> {selectedOrder.delivery_address}</p>
-                <p><strong>District:</strong> {selectedOrder.district}</p>
-                <p><strong>State:</strong> {selectedOrder.state}</p>
-                <p><strong>Pincode:</strong> {selectedOrder.pincode}</p>
-              </div>
             </div>
 
             {/* Section 4: Payment Summary */}

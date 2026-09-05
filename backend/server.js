@@ -11,6 +11,7 @@ const farmerRoutes = require('./routes/farmerRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const deliveryRoutes = require('./routes/deliveryRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,8 @@ app.use('/api/farmer', farmerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/delivery-partners', deliveryRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {

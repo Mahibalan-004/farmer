@@ -127,10 +127,13 @@ const createOrderTransaction = async ({
 };
 
 // Get Orders placed by Buyer
-// Get Orders placed by Buyer
 const getOrdersByBuyerId = async (buyer_id) => {
   const [orders] = await pool.query(
-    'SELECT * FROM orders WHERE buyer_id = ? ORDER BY created_at DESC',
+    `SELECT o.*, d.delivery_status, d.estimated_delivery_date
+     FROM orders o
+     LEFT JOIN deliveries d ON o.id = d.order_id
+     WHERE o.buyer_id = ? 
+     ORDER BY o.created_at DESC`,
     [buyer_id]
   );
 
@@ -152,7 +155,14 @@ const getOrdersByBuyerId = async (buyer_id) => {
 
 // Get Order Details with items
 const getOrderById = async (order_id) => {
-  const [orders] = await pool.query('SELECT * FROM orders WHERE id = ?', [order_id]);
+  const [orders] = await pool.query(
+    `SELECT o.*, d.delivery_status, d.estimated_delivery_date, dp.full_name AS partner_name, dp.phone AS partner_phone, dp.vehicle_type, dp.vehicle_number
+     FROM orders o
+     LEFT JOIN deliveries d ON o.id = d.order_id
+     LEFT JOIN delivery_partners dp ON d.delivery_partner_id = dp.id
+     WHERE o.id = ?`, 
+    [order_id]
+  );
   if (orders.length === 0) return null;
 
   const order = orders[0];
@@ -179,11 +189,13 @@ const getOrdersForFarmer = async (farmer_id) => {
        o.order_number, o.order_status, o.payment_status, o.payment_method,
        o.delivery_name, o.delivery_phone, o.delivery_address, o.district, o.state, o.pincode, o.phone AS buyer_phone,
        u.full_name AS buyer_name, u.email AS buyer_email,
-       p.unit, p.image_url
+       p.unit, p.image_url,
+       d.delivery_status, d.estimated_delivery_date
      FROM order_items oi
      JOIN orders o ON oi.order_id = o.id
      JOIN users u ON o.buyer_id = u.id
      LEFT JOIN products p ON oi.product_id = p.id
+     LEFT JOIN deliveries d ON o.id = d.order_id
      WHERE oi.farmer_id = ?
      ORDER BY oi.created_at DESC`,
     [farmer_id]
@@ -233,6 +245,11 @@ const cancelOrderTransaction = async (order_id, buyer_id) => {
       [order_id]
     );
 
+    await connection.query(
+      "UPDATE deliveries SET delivery_status = 'Cancelled' WHERE order_id = ?",
+      [order_id]
+    );
+
     await connection.commit();
     return true;
   } catch (error) {
@@ -243,7 +260,7 @@ const cancelOrderTransaction = async (order_id, buyer_id) => {
   }
 };
 
-// Allowed Status Transition State Machine
+// Allowed Status Transition State Machine (Strictly ORDER statuses)
 const ALLOWED_TRANSITIONS = {
   'Pending': ['Confirmed', 'Cancelled'],
   'Placed': ['Confirmed', 'Cancelled'],
@@ -309,6 +326,11 @@ const updateOrderStatus = async (order_id, new_status, farmer_id = null) => {
           [parseFloat(item.quantity), item.product_id]
         );
       }
+
+      await connection.query(
+        "UPDATE deliveries SET delivery_status = 'Cancelled' WHERE order_id = ?",
+        [order_id]
+      );
     }
 
     await connection.query(

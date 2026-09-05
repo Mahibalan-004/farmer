@@ -109,6 +109,16 @@ function Navbar() {
                 </Link>
               )}
 
+              {user.role === 'Admin' && (
+                <Link
+                  to="/admin/deliveries"
+                  className={`nav-item ${location.pathname.includes('admin') ? 'active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  🚚 Logistics Admin
+                </Link>
+              )}
+
               <Link
                 to="/cart"
                 className={`nav-item nav-cart-item ${location.pathname === '/cart' ? 'active' : ''}`}

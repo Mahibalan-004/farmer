@@ -179,6 +179,18 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/deliveries"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <>
+                <Navbar />
+                <AdminDashboard />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />

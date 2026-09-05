@@ -136,7 +136,66 @@ const initDb = async () => {
       );
     `);
 
-    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items ready)');
+    // 7. Create Delivery Partners Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS delivery_partners (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        full_name VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        email VARCHAR(255) DEFAULT NULL,
+        vehicle_type ENUM('Bike', 'Auto', 'Van', 'Truck') NOT NULL DEFAULT 'Bike',
+        vehicle_number VARCHAR(50) NOT NULL,
+        availability_status ENUM('Available', 'Busy', 'Offline') NOT NULL DEFAULT 'Available',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Seed default delivery partners if empty
+    const [existingPartners] = await pool.query('SELECT COUNT(*) AS count FROM delivery_partners');
+    if (existingPartners[0].count === 0) {
+      await pool.query(`
+        INSERT INTO delivery_partners (full_name, phone, email, vehicle_type, vehicle_number, availability_status) VALUES
+        ('Ramesh Kumar', '+91 98765 43210', 'ramesh.logistics@agrif2c.com', 'Van', 'TN-37-AB-1234', 'Available'),
+        ('Suresh Patel', '+91 98765 43211', 'suresh.logistics@agrif2c.com', 'Truck', 'TN-37-CD-5678', 'Available'),
+        ('Anita Sharma', '+91 98765 43212', 'anita.express@agrif2c.com', 'Auto', 'TN-37-EF-9012', 'Available')
+      `);
+    }
+
+    // 8. Create Deliveries Table (Future AI Route Optimization Preparedness)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS deliveries (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL UNIQUE,
+        delivery_partner_id INT DEFAULT NULL,
+        pickup_address TEXT DEFAULT NULL,
+        pickup_district VARCHAR(100) DEFAULT NULL,
+        pickup_state VARCHAR(100) DEFAULT NULL,
+        delivery_address TEXT DEFAULT NULL,
+        delivery_district VARCHAR(100) DEFAULT NULL,
+        delivery_state VARCHAR(100) DEFAULT NULL,
+        delivery_status ENUM('Pending', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Pending',
+        estimated_delivery_date DATE DEFAULT NULL,
+        picked_up_at TIMESTAMP NULL DEFAULT NULL,
+        delivered_at TIMESTAMP NULL DEFAULT NULL,
+        route_notes TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (delivery_partner_id) REFERENCES delivery_partners(id) ON DELETE SET NULL
+      );
+    `);
+
+    // Ensure delivery_status ENUM column is updated safely for existing databases
+    try {
+      await pool.query(`
+        ALTER TABLE deliveries 
+        MODIFY COLUMN delivery_status ENUM('Pending', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Pending'
+      `);
+    } catch (deliveryEnumErr) {
+      console.log('Notice updating deliveries delivery_status enum:', deliveryEnumErr.message);
+    }
+
+    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items, delivery_partners, deliveries ready)');
   } catch (error) {
     console.error('❌ Error initializing database tables:', error.message);
   }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import OrderTracker from '../components/OrderTracker';
 import DeliveryTracker from '../components/DeliveryTracker';
+import RouteMapModal from '../components/RouteMapModal';
 
 const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -11,6 +12,8 @@ const MyOrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedRouteMap, setSelectedRouteMap] = useState(null);
+  const [loadingRouteId, setLoadingRouteId] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -82,6 +85,30 @@ const MyOrdersPage = () => {
       setError('Server error during order cancellation.');
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleViewRouteDetails = async (orderId) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setLoadingRouteId(orderId);
+      setError('');
+      const res = await fetch(`http://localhost:5000/api/routes/${orderId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.route) {
+        setSelectedRouteMap(data.route);
+      } else {
+        setError(data.message || 'Delivery route info not available yet.');
+      }
+    } catch (err) {
+      console.error('Fetch buyer route error:', err);
+      setError('Failed to load delivery route info.');
+    } finally {
+      setLoadingRouteId(null);
     }
   };
 
@@ -255,8 +282,16 @@ const MyOrdersPage = () => {
                         <span className="total-val">₹{parseFloat(order.total_amount).toFixed(2)}</span>
                       </div>
 
-                      {isCancelable && (
-                        <div className="btn-group-row">
+                      <div className="btn-group-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        <button
+                          onClick={() => handleViewRouteDetails(order.id)}
+                          disabled={loadingRouteId === order.id}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          {loadingRouteId === order.id ? '⏳ Loading Route...' : '🗺️ View Route & Distance'}
+                        </button>
+
+                        {isCancelable && (
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             disabled={cancellingId === order.id}
@@ -264,8 +299,8 @@ const MyOrdersPage = () => {
                           >
                             {cancellingId === order.id ? 'Cancelling...' : '❌ Cancel Order'}
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -389,6 +424,14 @@ const MyOrdersPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Buyer Route Details & OpenStreetMap Modal */}
+      {selectedRouteMap && (
+        <RouteMapModal
+          route={selectedRouteMap}
+          onClose={() => setSelectedRouteMap(null)}
+        />
       )}
     </div>
   );

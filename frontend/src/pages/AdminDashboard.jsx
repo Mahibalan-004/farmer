@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import DeliveryTracker from '../components/DeliveryTracker';
+import RouteOptimizationPage from './RouteOptimizationPage';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('deliveries'); // 'deliveries' | 'partners'
+  const [activeTab, setActiveTab] = useState('deliveries'); // 'deliveries' | 'routes' | 'partners'
   const [deliveries, setDeliveries] = useState([]);
   const [partners, setPartners] = useState([]);
   const [stats, setStats] = useState({
@@ -123,13 +124,13 @@ const AdminDashboard = () => {
         setError(data.message || 'Failed to assign delivery partner.');
       }
     } catch (err) {
-      console.error('Assign partner error:', err);
-      setError('Server error while assigning partner.');
+      console.error('Assign delivery error:', err);
+      setError('Server error assigning delivery partner.');
     }
   };
 
-  // Handle Delivery Status Update (Forward-only state machine)
-  const handleStatusUpdate = async (orderId, newStatus) => {
+  // Handle Status Update
+  const handleStatusChange = async (orderId, newStatus) => {
     try {
       setError('');
       setSuccessMsg('');
@@ -145,30 +146,29 @@ const AdminDashboard = () => {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMsg(`Delivery status updated to '${newStatus}'!`);
+        setSuccessMsg(`Updated delivery status to '${newStatus}' for Order #${orderId}`);
         fetchDashboardData();
       } else {
-        setError(data.message || 'Failed to update delivery status.');
+        setError(data.message || 'Failed to update status.');
       }
     } catch (err) {
-      console.error('Status update error:', err);
-      setError('Server error updating status.');
+      console.error('Update status error:', err);
+      setError('Server error updating delivery status.');
     }
   };
 
-  // Handle Delivery Partner Create / Update
-  const handlePartnerFormSubmit = async (e) => {
+  // Partner Form Submission
+  const handleSavePartner = async (e) => {
     e.preventDefault();
     try {
       setError('');
       setSuccessMsg('');
 
-      const isEdit = !!editingPartner;
-      const url = isEdit 
+      const url = editingPartner 
         ? `http://localhost:5000/api/deliveries/partners/${editingPartner.id}`
         : 'http://localhost:5000/api/deliveries/partners';
 
-      const method = isEdit ? 'PUT' : 'POST';
+      const method = editingPartner ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
@@ -181,12 +181,13 @@ const AdminDashboard = () => {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMsg(isEdit ? 'Partner updated successfully!' : 'Delivery Partner registered!');
+        setSuccessMsg(editingPartner ? 'Updated delivery partner!' : 'Added new delivery partner!');
         setPartnerModalOpen(false);
         setEditingPartner(null);
+        setPartnerForm({ full_name: '', phone: '', email: '', vehicle_type: 'Van', vehicle_number: '', availability_status: 'Available' });
         fetchDashboardData();
       } else {
-        setError(data.message || 'Failed to save delivery partner.');
+        setError(data.message || 'Failed to save partner.');
       }
     } catch (err) {
       console.error('Save partner error:', err);
@@ -194,23 +195,39 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleEditPartnerClick = (partner) => {
+    setEditingPartner(partner);
+    setPartnerForm({
+      full_name: partner.full_name,
+      phone: partner.phone,
+      email: partner.email || '',
+      vehicle_type: partner.vehicle_type,
+      vehicle_number: partner.vehicle_number,
+      availability_status: partner.availability_status
+    });
+    setPartnerModalOpen(true);
+  };
+
   const handleDeletePartner = async (partnerId) => {
-    if (!window.confirm('Delete this delivery partner?')) return;
+    if (!window.confirm('Are you sure you want to remove this delivery partner?')) return;
+
     try {
+      setError('');
+      setSuccessMsg('');
       const res = await fetch(`http://localhost:5000/api/deliveries/partners/${partnerId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMsg('Delivery partner removed.');
+        setSuccessMsg('Removed delivery partner.');
         fetchDashboardData();
       } else {
         setError(data.message || 'Failed to delete partner.');
       }
     } catch (err) {
       console.error('Delete partner error:', err);
-      setError('Server error deleting partner.');
+      setError('Server error deleting delivery partner.');
     }
   };
 
@@ -223,15 +240,7 @@ const AdminDashboard = () => {
 
   const openPartnerModal = (partner = null) => {
     if (partner) {
-      setEditingPartner(partner);
-      setPartnerForm({
-        full_name: partner.full_name || '',
-        phone: partner.phone || '',
-        email: partner.email || '',
-        vehicle_type: partner.vehicle_type || 'Van',
-        vehicle_number: partner.vehicle_number || '',
-        availability_status: partner.availability_status || 'Available'
-      });
+      handleEditPartnerClick(partner);
     } else {
       setEditingPartner(null);
       setPartnerForm({
@@ -242,8 +251,8 @@ const AdminDashboard = () => {
         vehicle_number: '',
         availability_status: 'Available'
       });
+      setPartnerModalOpen(true);
     }
-    setPartnerModalOpen(true);
   };
 
   const getStatusBadgeClass = (status) => {
@@ -268,7 +277,7 @@ const AdminDashboard = () => {
       <div className="admin-dashboard-header">
         <div>
           <h2>🚚 AGRIF2C Logistics & Delivery Operations Hub</h2>
-          <p>Manage nationwide farm-to-consumer delivery dispatches, drivers, and tracking timelines</p>
+          <p>Manage nationwide farm-to-consumer delivery dispatches, drivers, route optimization, and tracking timelines</p>
         </div>
 
         <div className="admin-tab-switcher">
@@ -277,6 +286,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('deliveries')}
           >
             📦 Deliveries Overview
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'routes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('routes')}
+          >
+            🗺️ Smart Route Optimization
           </button>
           <button
             className={`tab-btn ${activeTab === 'partners' ? 'active' : ''}`}
@@ -335,6 +350,11 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* TAB 2: ROUTE OPTIMIZATION */}
+      {activeTab === 'routes' && (
+        <RouteOptimizationPage />
+      )}
 
       {/* TAB 1: DELIVERIES MANAGEMENT */}
       {activeTab === 'deliveries' && (

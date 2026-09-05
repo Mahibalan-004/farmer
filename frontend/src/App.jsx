@@ -21,6 +21,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import AdminDashboard from './pages/AdminDashboard';
+import RouteOptimizationPage from './pages/RouteOptimizationPage';
 
 // Guard for protected routes
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -186,6 +187,18 @@ function App() {
               <>
                 <Navbar />
                 <AdminDashboard />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/routes"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <>
+                <Navbar />
+                <RouteOptimizationPage />
                 <Footer />
               </>
             </ProtectedRoute>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import OrderTracker from '../components/OrderTracker';
 import DeliveryTracker from '../components/DeliveryTracker';
+import RouteMapModal from '../components/RouteMapModal';
 
 const FarmerOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -9,6 +10,8 @@ const FarmerOrdersPage = () => {
   const [updatingId, setUpdatingId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [selectedRouteMap, setSelectedRouteMap] = useState(null);
+  const [loadingRouteId, setLoadingRouteId] = useState(null);
 
   useEffect(() => {
     fetchFarmerOrders();
@@ -114,6 +117,30 @@ const FarmerOrdersPage = () => {
       setError('Server error updating delivery status');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleViewRouteDetails = async (orderId) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setLoadingRouteId(orderId);
+      setError('');
+      const res = await fetch(`http://localhost:5000/api/routes/${orderId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.route) {
+        setSelectedRouteMap(data.route);
+      } else {
+        setError(data.message || 'Route information not available yet.');
+      }
+    } catch (err) {
+      console.error('Fetch route details error:', err);
+      setError('Failed to load route details.');
+    } finally {
+      setLoadingRouteId(null);
     }
   };
 
@@ -345,8 +372,16 @@ const FarmerOrdersPage = () => {
                   </div>
                 </div>
 
-                {/* Controlled Action Buttons */}
-                <div className="farmer-order-footer">
+                {/* Controlled Action Buttons & Route View */}
+                <div className="farmer-order-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => handleViewRouteDetails(targetOrderId)}
+                    disabled={loadingRouteId === targetOrderId}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    {loadingRouteId === targetOrderId ? '⏳ Loading Route...' : '🗺️ View Route & Distance'}
+                  </button>
+
                   <div className="action-button-container">
                     {renderFarmerActionButtons(order)}
                   </div>
@@ -355,6 +390,14 @@ const FarmerOrdersPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Route Map Modal for Farmer */}
+      {selectedRouteMap && (
+        <RouteMapModal
+          route={selectedRouteMap}
+          onClose={() => setSelectedRouteMap(null)}
+        />
       )}
     </div>
   );

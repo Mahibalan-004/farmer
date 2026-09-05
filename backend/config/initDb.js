@@ -1,4 +1,5 @@
 const { pool } = require('./db');
+const bcrypt = require('bcryptjs');
 
 const initDb = async () => {
   try {
@@ -185,17 +186,46 @@ const initDb = async () => {
       );
     `);
 
-    // Ensure delivery_status ENUM column is updated safely for existing databases
-    try {
-      await pool.query(`
-        ALTER TABLE deliveries 
-        MODIFY COLUMN delivery_status ENUM('Pending', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Pending'
-      `);
-    } catch (deliveryEnumErr) {
-      console.log('Notice updating deliveries delivery_status enum:', deliveryEnumErr.message);
+    // Add lat/long columns safely to deliveries table for existing schemas
+    await addColumnSafely('deliveries', 'pickup_latitude', 'DECIMAL(10,8) DEFAULT NULL');
+    await addColumnSafely('deliveries', 'pickup_longitude', 'DECIMAL(11,8) DEFAULT NULL');
+    await addColumnSafely('deliveries', 'delivery_latitude', 'DECIMAL(10,8) DEFAULT NULL');
+    await addColumnSafely('deliveries', 'delivery_longitude', 'DECIMAL(11,8) DEFAULT NULL');
+
+    // 9. Create Routes Table for Smart Route Optimization
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS routes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        delivery_id INT NOT NULL UNIQUE,
+        pickup_latitude DECIMAL(10,8) NOT NULL,
+        pickup_longitude DECIMAL(11,8) NOT NULL,
+        delivery_latitude DECIMAL(10,8) NOT NULL,
+        delivery_longitude DECIMAL(11,8) NOT NULL,
+        total_distance_km DECIMAL(10,2) NOT NULL,
+        estimated_duration_minutes INT NOT NULL,
+        average_speed_kmh INT DEFAULT 40,
+        route_classification ENUM('Short Distance', 'Medium Distance', 'Long Distance') NOT NULL DEFAULT 'Short Distance',
+        suggested_route_summary TEXT DEFAULT NULL,
+        route_status ENUM('Not Optimized', 'Optimized') NOT NULL DEFAULT 'Optimized',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+      );
+    `);
+
+    // 10. Seed default Admin user if no Admin user exists in database
+    const [existingAdmin] = await pool.query("SELECT id FROM users WHERE role = 'Admin' LIMIT 1");
+    if (existingAdmin.length === 0) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('Admin@123', salt);
+      await pool.query(
+        `INSERT INTO users (full_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)`,
+        ['System Administrator', 'admin@agrif2c.com', '+91 99999 00000', hashedPassword, 'Admin']
+      );
+      console.log('👑 Default Admin account seeded: admin@agrif2c.com');
     }
 
-    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items, delivery_partners, deliveries ready)');
+    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items, delivery_partners, deliveries, routes, admin user ready)');
   } catch (error) {
     console.error('❌ Error initializing database tables:', error.message);
   }

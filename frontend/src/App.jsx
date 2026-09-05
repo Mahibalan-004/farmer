@@ -1,83 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+
+import HomePage from './pages/HomePage';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import FarmerDashboard from './pages/FarmerDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+
+// Simple Protected Route wrapper
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('token');
+  const userJson = localStorage.getItem('user');
+
+  if (!token || !userJson) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const user = JSON.parse(userJson);
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect based on user's actual role
+    if (user.role === 'Farmer') return <Navigate to="/farmer-dashboard" replace />;
+    if (user.role === 'Admin') return <Navigate to="/admin-dashboard" replace />;
+    return <Navigate to="/buyer-dashboard" replace />;
+  }
+
+  return children;
+};
 
 function App() {
-  const [healthStatus, setHealthStatus] = useState({
-    loading: true,
-    connected: false,
-    message: 'Checking Backend Health...',
-    database: 'Checking Database...'
-  });
-
-  useEffect(() => {
-    // Fetch backend health endpoint
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setHealthStatus({
-          loading: false,
-          connected: true,
-          message: data.message || 'AGRIF2C Backend is Running Successfully',
-          database: data.database || 'MySQL Database Configured'
-        });
-      })
-      .catch((err) => {
-        console.error('Error fetching backend health:', err);
-        setHealthStatus({
-          loading: false,
-          connected: false,
-          message: 'Backend Offline (Start Node.js server on port 5000)',
-          database: 'Database Status Unavailable'
-        });
-      });
-  }, []);
-
   return (
-    <div className="container">
-      <main className="hero-card">
-        <div className="badge">🌱 Agri Farmer-to-Consumer Platform</div>
-        
-        <h1 className="title">Welcome to AGRIF2C</h1>
-        
-        <p className="subtitle">
-          Connecting Farmers Directly with Buyers
-        </p>
+    <Router>
+      <Navbar />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
 
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <div className="status-card">
-            <span className={`status-dot ${healthStatus.connected ? 'active' : ''}`}></span>
-            <span className="status-text">
-              {healthStatus.loading ? 'Connecting...' : healthStatus.message}
-            </span>
-          </div>
+        {/* Role-Based Dashboard Routes */}
+        <Route
+          path="/farmer-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Farmer']}>
+              <FarmerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/buyer-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Consumer', 'Retailer', 'Restaurant', 'Bulk Buyer']}>
+              <BuyerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          <div className="status-card">
-            <span className={`status-dot ${healthStatus.database.includes('Successfully') ? 'active' : ''}`}></span>
-            <span className="status-text">
-              🗄️ {healthStatus.loading ? 'Checking MySQL...' : healthStatus.database}
-            </span>
-          </div>
-        </div>
-
-        <div className="roles-section">
-          <p className="roles-title">Platform User Roles & Buyers Supported</p>
-          <div className="roles-grid">
-            <span className="role-tag">👨‍🌾 Farmer</span>
-            <span className="role-tag">🛒 Individual Consumer</span>
-            <span className="role-tag">🏬 Retailer</span>
-            <span className="role-tag">🍽️ Restaurant</span>
-            <span className="role-tag">📦 Bulk Buyer</span>
-            <span className="role-tag">🛡️ Admin</span>
-          </div>
-        </div>
-      </main>
-
-      <footer>
-        AGRIF2C System Architecture • MySQL Database Module Configured
-      </footer>
-    </div>
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer />
+    </Router>
   );
 }
 

@@ -6,7 +6,8 @@ const {
   getOrderDetails,
   getFarmerOrders,
   cancelOrder,
-  updateStatus
+  updateStatus,
+  repeatOrder
 } = require('../controllers/orderController');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
@@ -15,6 +16,7 @@ router.post('/', protect, placeOrder);
 router.get('/buyer', protect, getMyOrders);
 router.get('/my-orders', protect, getMyOrders);
 router.put('/:id/cancel', protect, cancelOrder);
+router.post('/:id/repeat', protect, repeatOrder);
 
 // Farmer Protected Routes
 router.get('/farmer', protect, authorizeRoles('Farmer'), getFarmerOrders);

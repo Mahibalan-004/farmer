@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import OrderTracker from '../components/OrderTracker';
 import DeliveryTracker from '../components/DeliveryTracker';
 import RouteMapModal from '../components/RouteMapModal';
+import FarmerBulkRequestsTab from '../components/FarmerBulkRequestsTab';
 
 const FarmerOrdersPage = () => {
+  const [activeView, setActiveView] = useState('orders'); // 'orders' | 'bulk-requests'
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -269,21 +271,44 @@ const FarmerOrdersPage = () => {
         </div>
       </div>
 
-      {error && <div className="cart-error-message">{error}</div>}
-      {successMsg && <div className="cart-success-message">{successMsg}</div>}
-
-      {/* Filter Tabs */}
-      <div className="order-filter-tabs">
-        {['All', 'Pending', 'Confirmed', 'Processing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'].map(filter => (
-          <button
-            key={filter}
-            className={`filter-tab ${activeFilter === filter ? 'active' : ''}`}
-            onClick={() => setActiveFilter(filter)}
-          >
-            {filter}
-          </button>
-        ))}
+      {/* Primary Navigation View Buttons */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        <button
+          onClick={() => setActiveView('orders')}
+          className={`btn ${activeView === 'orders' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '0.5rem 1.25rem' }}
+        >
+          📦 Customer Orders
+        </button>
+        <button
+          onClick={() => setActiveView('bulk-requests')}
+          className={`btn ${activeView === 'bulk-requests' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '0.5rem 1.25rem' }}
+        >
+          📦 Wholesale & Bulk Requests
+        </button>
       </div>
+
+      {activeView === 'bulk-requests' ? (
+        <FarmerBulkRequestsTab />
+      ) : (
+        <>
+          {error && <div className="cart-error-message">{error}</div>}
+          {successMsg && <div className="cart-success-message">{successMsg}</div>}
+
+          {/* Filter Tabs */}
+          <div className="order-filter-tabs">
+            {['All', 'Pending', 'Confirmed', 'Processing', 'Ready for Pickup', 'Picked Up', 'Out for Delivery', 'Delivered', 'Cancelled'].map(filter => (
+              <button
+                key={filter}
+                className={`filter-tab ${activeFilter === filter ? 'active' : ''}`}
+                onClick={() => setActiveFilter(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        
 
       {loading ? (
         <div className="cart-loading">⏳ Loading customer order requests...</div>
@@ -390,6 +415,8 @@ const FarmerOrdersPage = () => {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* Route Map Modal for Farmer */}

@@ -224,7 +224,73 @@ const initDb = async () => {
       );
     `);
 
-    // 10. Seed default Admin user if no Admin user exists in database
+    // 10. Create Buyer Profiles Table (Retailer, Restaurant, Bulk Buyer)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS buyer_profiles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        business_type ENUM('Retailer', 'Restaurant', 'Bulk Buyer') NOT NULL,
+        business_name VARCHAR(255) NOT NULL,
+        contact_person VARCHAR(255) NOT NULL,
+        business_phone VARCHAR(50) NOT NULL,
+        address TEXT NOT NULL,
+        district VARCHAR(100) NOT NULL,
+        state VARCHAR(100) NOT NULL,
+        pincode VARCHAR(20) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
+    // 11. Create Bulk Order Requests Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bulk_order_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        request_number VARCHAR(50) DEFAULT NULL,
+        buyer_id INT NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        category VARCHAR(100) DEFAULT NULL,
+        required_quantity DECIMAL(10,2) NOT NULL,
+        unit VARCHAR(50) NOT NULL DEFAULT 'kg',
+        delivery_location TEXT NOT NULL,
+        preferred_delivery_date DATE NOT NULL,
+        additional_notes TEXT DEFAULT NULL,
+        status ENUM('Pending', 'Reviewed', 'Accepted', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Ensure bulk_order_requests request_number LPAD migration
+    try {
+      await pool.query(`
+        UPDATE bulk_order_requests 
+        SET request_number = CONCAT('BULK-', LPAD(id, 6, '0'))
+        WHERE request_number IS NULL OR request_number NOT LIKE 'BULK-%'
+      `);
+    } catch (migErr) {
+      console.log('Notice migrating bulk request numbers:', migErr.message);
+    }
+
+    // 12. Create Bulk Request Responses Table (Farmer Availability)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bulk_request_responses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        bulk_request_id INT NOT NULL,
+        farmer_id INT NOT NULL,
+        availability_status ENUM('Available', 'Not Available') NOT NULL,
+        notes TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (bulk_request_id) REFERENCES bulk_order_requests(id) ON DELETE CASCADE,
+        FOREIGN KEY (farmer_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_farmer_request (bulk_request_id, farmer_id)
+      );
+    `);
+
+    // 13. Seed default Admin user if no Admin user exists in database
     const [existingAdmin] = await pool.query("SELECT id FROM users WHERE role = 'Admin' LIMIT 1");
     if (existingAdmin.length === 0) {
       const salt = await bcrypt.genSalt(10);
@@ -236,7 +302,7 @@ const initDb = async () => {
       console.log('👑 Default Admin account seeded: admin@agrif2c.com');
     }
 
-    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items, delivery_partners, deliveries, routes, admin user ready)');
+    console.log('📋 Database Tables Initialized (users, products, carts, cart_items, orders, order_items, delivery_partners, deliveries, routes, buyer_profiles, bulk_order_requests, bulk_request_responses, admin user ready)');
   } catch (error) {
     console.error('❌ Error initializing database tables:', error.message);
   }

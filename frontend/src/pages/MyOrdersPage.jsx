@@ -48,6 +48,40 @@ const MyOrdersPage = () => {
     }
   };
 
+  const [repeatingId, setRepeatingId] = useState(null);
+
+  const handleRepeatOrder = async (orderId) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setRepeatingId(orderId);
+      setError('');
+      setSuccessMsg('');
+
+      const res = await fetch(`http://localhost:5000/api/orders/${orderId}/repeat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setSuccessMsg(data.message || 'Items added to cart using current prices!');
+      } else {
+        setError(data.message || 'Failed to repeat order.');
+      }
+    } catch (err) {
+      console.error('Repeat order error:', err);
+      setError('Server error during repeat order process.');
+    } finally {
+      setRepeatingId(null);
+    }
+  };
+
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order? Product stock will be restored back to inventory.')) {
       return;
@@ -283,6 +317,15 @@ const MyOrdersPage = () => {
                       </div>
 
                       <div className="btn-group-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        <button
+                          onClick={() => handleRepeatOrder(order.id)}
+                          disabled={repeatingId === order.id}
+                          className="btn btn-primary btn-sm"
+                          style={{ background: '#059669', borderColor: '#059669' }}
+                        >
+                          {repeatingId === order.id ? '⏳ Adding to Cart...' : '🔄 Repeat Order'}
+                        </button>
+
                         <button
                           onClick={() => handleViewRouteDetails(order.id)}
                           disabled={loadingRouteId === order.id}

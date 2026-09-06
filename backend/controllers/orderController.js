@@ -1,3 +1,4 @@
+const { pool } = require('../config/db');
 const {
   createOrderTransaction,
   getOrdersByBuyerId,
@@ -6,7 +7,7 @@ const {
   cancelOrderTransaction,
   updateOrderStatus
 } = require('../models/orderModel');
-const { getOrCreateCart, getCartItems } = require('../models/cartModel');
+const { getOrCreateCart, getCartItems, addOrUpdateCartItem } = require('../models/cartModel');
 
 // @desc    Place a new order
 // @route   POST /api/orders
@@ -200,11 +201,102 @@ const updateStatus = async (req, res) => {
   }
 };
 
+// @desc    Repeat order for Restaurant users (re-add available products to cart using current prices)
+// @route   POST /api/orders/:id/repeat
+// @access  Private (Restaurant/Buyer)
+const repeatOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await getOrderById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Original order not found' });
+    }
+
+    if (order.buyer_id !== req.user.id && req.user.role !== 'Admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to repeat this order' });
+    }
+
+    const orderItems = order.items || [];
+    if (orderItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'No items found in original order' });
+    }
+
+    const cart = await getOrCreateCart(req.user.id);
+    const addedItems = [];
+    const unavailableItems = [];
+
+    for (const item of orderItems) {
+      // Query current product status and stock from DB
+      const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [item.product_id]);
+      
+      if (products.length === 0) {
+        unavailableItems.push({
+          product_name: item.product_name,
+          reason: 'Product no longer listed in marketplace'
+        });
+        continue;
+      }
+
+      const currentProduct = products[0];
+      const stockQty = parseFloat(currentProduct.quantity);
+      const requestedQty = parseFloat(item.quantity);
+
+      if (currentProduct.status !== 'Available' || stockQty < requestedQty) {
+        unavailableItems.push({
+          product_name: item.product_name,
+          requested_quantity: requestedQty,
+          available_stock: stockQty,
+          reason: currentProduct.status !== 'Available' ? 'Product currently unavailable' : `Only ${stockQty} ${currentProduct.unit || 'kg'} available in stock`
+        });
+        continue;
+      }
+
+      // Add to cart with current product details
+      await addOrUpdateCartItem(cart.id, currentProduct.id, requestedQty);
+      addedItems.push({
+        product_id: currentProduct.id,
+        crop_name: currentProduct.crop_name,
+        quantity: requestedQty,
+        unit: currentProduct.unit,
+        current_price_per_unit: currentProduct.price_per_unit
+      });
+    }
+
+    if (addedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'None of the products in this order are currently available in stock.',
+        unavailableItems
+      });
+    }
+
+    let message = `${addedItems.length} product(s) added to your cart at current prices.`;
+    if (unavailableItems.length > 0) {
+      message += ` ${unavailableItems.length} item(s) were unavailable.`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message,
+      addedItems,
+      unavailableItems
+    });
+  } catch (error) {
+    console.error('❌ Error repeating order:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to repeat order'
+    });
+  }
+};
+
 module.exports = {
   placeOrder,
   getMyOrders,
   getOrderDetails,
   getFarmerOrders,
   cancelOrder,
-  updateStatus
+  updateStatus,
+  repeatOrder
 };
